@@ -1,0 +1,39 @@
+{
+  "REDIS": "esdeath",
+  "redis": {
+    "REDISCHANNEL": "channel",
+    "redisChannel": {
+      "events": {
+        "ADDFEED": "add",
+        "REMOVEFEED": "remove"
+      }
+    },
+    "GUILDS": "guildIds",
+    "guilds": {
+      "SETTINGS": "settings",
+      "settings": {
+        "FEEDLIMIT": "feedlimit",
+        "PREFIX": "prefix",
+        "OPROLES": "oproles",
+        "CHANNELLIMIT": "channellimit"
+      },
+      "FEEDS": "feeds",
+      "feeds": {
+
+      }
+    },
+
+    "FEEDS": "esdeath:feeds",
+    "feeds": {
+      "LINK": "link",
+      "LASTSTATUS": "laststatus",
+      "CHANNELS": "channels"
+    }
+  },
+  "distributor": {
+    "events": {
+      "ADDFEED": "addFeed",
+      "REMOVEFEED": "removeFeed"
+    }
+  }
+}
