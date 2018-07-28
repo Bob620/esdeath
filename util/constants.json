@@ -19,7 +19,8 @@
       },
       "FEEDS": "feeds",
       "feeds": {
-
+        "COLOR": "color",
+        "CHANNELS": "channels"
       }
     },
 

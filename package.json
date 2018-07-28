@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/Bob620/esdeath#readme",
   "dependencies": {
+    "davefeedread": "^0.4.14",
     "redis": "^2.8.0"
   }
 }

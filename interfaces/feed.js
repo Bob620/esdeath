@@ -1,6 +1,6 @@
 const constants = require('../util/constants');
 
-const { removeFeedChannel, addFeedChannel, getFeedChannels, getFeedLastStatus, getFeedLink, removeFeed, setFeedLastStatus, feedExists, addFeed } = require('../util/database');
+const { removeFeedChannel, addFeedChannel, getFeedChannels, getFeedLastStatus, getFeedLink, removeFeed, setFeedLastStatus, feedExists, addFeed, getFeedColor, setFeedColor } = require('../util/database');
 
 const distributor = require('../components/distributor');
 
@@ -45,14 +45,12 @@ module.exports = class {
 	getLink() {
 		if (!this.exists()) return Promise.reject();
 
-		if (this.isReady()) {
+		if (this.isReady())
 			return getFeedLink(this.data.redisLocation);
-		}
 
-		return new Promise(async (resolve) => {
-			const link = await getFeedLink(this.data.redisLocation);
-			this.data.heldPromises.push(() => {
-				resolve(link);
+		return new Promise((resolve) => {
+			this.data.heldPromises.push(async () => {
+				resolve(await getFeedLink(this.data.redisLocation));
 			});
 		});
 	}
@@ -60,14 +58,12 @@ module.exports = class {
 	getLastStatus() {
 		if (!this.exists()) return Promise.reject();
 
-		if (this.isReady()) {
+		if (this.isReady())
 			return getFeedLastStatus(this.data.redisLocation);
-		}
 
-		return new Promise(async (resolve) => {
-			const lastStatus = await getFeedLastStatus(this.data.redisLocation);
-			this.data.heldPromises.push(() => {
-				resolve(lastStatus);
+		return new Promise((resolve) => {
+			this.data.heldPromises.push(async () => {
+				resolve(await getFeedLastStatus(this.data.redisLocation));
 			});
 		});
 	}
@@ -75,9 +71,8 @@ module.exports = class {
 	setLastStatus(lastStatus) {
 		if (!this.exists()) return Promise.reject();
 
-		if (this.isReady()) {
+		if (this.isReady())
 			return setFeedLastStatus(this.data.redisLocation, lastStatus);
-		}
 
 		return new Promise((resolve) => {
 			this.data.heldPromises.push(async () => {
@@ -86,17 +81,41 @@ module.exports = class {
 		});
 	}
 
+	getColor() {
+		if (!this.exists()) return Promise.reject();
+
+		if (this.isReady())
+			return getFeedColor(this.data.redisLocation);
+
+		return new Promise((resolve) => {
+			this.data.heldPromises.push(async () => {
+				resolve(await getFeedColor(this.data.redisLocation));
+			});
+		});
+	}
+
+	setColor(color) {
+		if (!this.exists()) return Promise.reject();
+
+		if (this.isReady())
+			return setFeedColor(this.data.redisLocation, color);
+
+		return new Promise((resolve) => {
+			this.data.heldPromises.push(async () => {
+				resolve(await setFeedColor(this.data.redisLocation, color));
+			});
+		});
+	}
+
 	getChannels() {
 		if (!this.exists()) return Promise.reject();
 
-		if (this.isReady()) {
+		if (this.isReady())
 			return getFeedChannels(this.data.redisLocation);
-		}
 
-		return new Promise(async (resolve) => {
-			const channels = await getFeedChannels(this.data.redisLocation);
-			this.data.heldPromises.push(() => {
-				resolve(channels);
+		return new Promise((resolve) => {
+			this.data.heldPromises.push(async () => {
+				resolve(await getFeedChannels(this.data.redisLocation));
 			});
 		});
 	}
@@ -104,9 +123,8 @@ module.exports = class {
 	addChannel(channelId) {
 		if (!this.exists()) return Promise.reject();
 
-		if (this.isReady()) {
+		if (this.isReady())
 			return addFeedChannel(this.data.redisLocation, channelId);
-		}
 
 		return new Promise((resolve) => {
 			this.data.heldPromises.push(async () => {
@@ -118,9 +136,8 @@ module.exports = class {
 	removeChannel(channelId) {
 		if (!this.exists()) return Promise.reject();
 
-		if (this.isReady()) {
+		if (this.isReady())
 			return removeFeedChannel(this.data.redisLocation, channelId);
-		}
 
 		return new Promise((resolve) => {
 			this.data.heldPromises.push(async () => {
@@ -132,9 +149,8 @@ module.exports = class {
 	delete() {
 		if (!this.exists()) return Promise.reject();
 
-		if (this.isReady()) {
+		if (this.isReady())
 			return removeFeed(this.data.id);
-		}
 
 		return new Promise((resolve) => {
 			this.data.heldPromises.push(async () => {

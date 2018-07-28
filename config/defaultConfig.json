@@ -1,5 +1,11 @@
 {
   "devMode": true,
   "redis": {},
-  "feedInterval": 30
+  "feedInterval": 30,
+  "rssTimeout": 10,
+  "rssSpecialCare": {
+    "http://feeds.feedburner.com/crunchyroll/animenews.xml": [
+      "fixCR"
+    ]
+  }
 }

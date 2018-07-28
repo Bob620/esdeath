@@ -11,6 +11,12 @@ module.exports = {
 	removeGuild: (id) => {
 
 	},
+	getGuildFeedColor: (guildLocation, feedId) => {
+		return redis.set(`${guildLocation}:${constants.redis.guilds.FEEDS}:${feedId}:${constants.redis.guilds.feeds.COLOR}`);
+	},
+	setGuildFeedColor: (guildLocation, feedId, color) => {
+		return redis.get(`${guildLocation}:${constants.redis.guilds.FEEDS}:${feedId}:${constants.redis.guilds.feeds.COLOR}`, color);
+	},
 	addFeed: async (feedLink) => {
 		// Check if feed doesn't exist (We won't overwrite it)
 		if (!await redis.s.isMember(`${constants.REDIS}:${constants.redis.FEEDS}`, feedLink)) {
@@ -92,8 +98,8 @@ module.exports = {
 				// Remove the attributes of the feed
 				let feedAttributePromises = [];
 				feedAttributePromises.push(redis.del(`${feedLocation}:${constants.redis.feeds.LINK}`));
-
 				feedAttributePromises.push(redis.del(`${feedLocation}:${constants.redis.feeds.LASTSTATUS}`));
+
 				for (const channelId of await redis.s.members(`${feedLocation}:${constants.redis.feeds.CHANNELS}`)) {
 					feedAttributePromises.push(redis.s.rem(`${feedLocation}:${constants.redis.feeds.CHANNELS}`, channelId));
 				}
@@ -119,7 +125,7 @@ module.exports = {
 		return redis.s.members(`${feedLocation}:${constants.redis.feeds.CHANNELS}`);
 	},
 	setFeedLastStatus: (feedLocation, lastStatus) => {
-		return redis.get(`${feedLocation}:${constants.redis.feeds.LASTSTATUS}`);
+		return redis.get(`${feedLocation}:${constants.redis.feeds.LASTSTATUS}`, lastStatus);
 	},
 	feedExists: (feedId) => {
 		return redis.s.isMember(`${constants.REDIS}:${constants.redis.FEEDS}`, feedId);
