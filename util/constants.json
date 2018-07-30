@@ -33,8 +33,11 @@
   },
   "distributor": {
     "events": {
+      "WATCHFEED": "watchFeed",
+      "UNWATCHFEED": "unwatchFeed",
       "ADDFEED": "addFeed",
-      "REMOVEFEED": "removeFeed"
+      "REMOVEFEED": "removeFeed",
+      "NEWFEEDARTICLES": "newFeedArticles"
     }
   }
 }

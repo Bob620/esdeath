@@ -59,6 +59,10 @@ class Distributor extends EventEmitter {
 		redisPub.publish(redisChannel, `${constants.redis.redisChannel.events.REMOVEFEED} ${feedId}`);
 		this.emitRemoveFeed(feedId);
 	}
+
+	emitNewFeedArticles(feedId, articles) {
+		this.emit(constants.distributor.events.NEWFEEDARTICLES, feedId, articles);
+	}
 }
 
 module.exports = new Distributor();
