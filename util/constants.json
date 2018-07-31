@@ -39,8 +39,8 @@
     }
   },
   "defaults": {
-    "guildFeedLimit": 5,
-    "guildPrefix": "^",
-    "guildChannelLimit": 5
+    "GUILDFEEDLIMIT": 5,
+    "GUILDPREFIX": "^",
+    "GUILDCHANNELLIMIT": 5
   }
 }

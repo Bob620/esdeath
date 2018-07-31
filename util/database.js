@@ -42,13 +42,13 @@ const database = {
 	getGuildLocation: (guildId) => {
 		return `${constants.REDIS}:${constants.redis.GUILDS}:${guildId}`;
 	},
-	setGuildFeedLimit: (guildLocation, limit=constants.defaults.guildFeedLimit) => {
+	setGuildFeedLimit: (guildLocation, limit=constants.defaults.GUILDFEEDLIMIT) => {
 		return redis.set(`${guildLocation}:${constants.redis.guilds.SETTINGS}:${constants.redis.guilds.settings.FEEDLIMIT}`, limit);
 	},
 	getGuildFeedLimit: (guildLocation) => {
 		return redis.get(`${guildLocation}:${constants.redis.guilds.SETTINGS}:${constants.redis.guilds.settings.FEEDLIMIT}`);
 	},
-	setGuildPrefix: (guildLocation, prefix=constants.defaults.guildPrefix) => {
+	setGuildPrefix: (guildLocation, prefix=constants.defaults.GUILDPREFIX) => {
 		return redis.set(`${guildLocation}:${constants.redis.guilds.SETTINGS}:${constants.redis.guilds.settings.PREFIX}`, prefix);
 	},
 	getGuildPrefix: (guildLocation) => {
@@ -66,7 +66,7 @@ const database = {
 	getGuildOpRoles: (guildLocation) => {
 		return redis.s.members(`${guildLocation}:${constants.redis.guilds.SETTINGS}:${constants.redis.guilds.settings.OPROLES}`);
 	},
-	setGuildChannelLimit: (guildLocation, limit=constants.defaults.guildChannelLimit) => {
+	setGuildChannelLimit: (guildLocation, limit=constants.defaults.GUILDCHANNELLIMIT) => {
 		return redis.set(`${guildLocation}:${constants.redis.guilds.SETTINGS}:${constants.redis.guilds.settings.CHANNELLIMIT}`, limit);
 	},
 	getGuildChannelLimit: (guildLocation) => {
