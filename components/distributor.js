@@ -30,10 +30,10 @@ class Distributor extends EventEmitter {
 
 			switch(event) {
 				case constants.redis.redisChannel.events.ADDFEED:
-					this.emit(constants.distributor.events.ADDFEED, values[0]);
+					this.emitAddFeed(values[0]);
 					break;
 				case constants.redis.redisChannel.events.REMOVEFEED:
-					this.emit(constants.distributor.events.REMOVEFEED, values[0]);
+					this.emitRemoveFeed(values[0]);
 					break;
 				default:
 					if (config.devMode) console.warn(`[Redis] UNKN channelEvent ${channel} ${message}`);
@@ -52,7 +52,6 @@ class Distributor extends EventEmitter {
 
 	pubAddFeed(feedId) {
 		redisPub.publish(redisChannel, `${constants.redis.redisChannel.events.ADDFEED} ${feedId}`);
-		this.emitAddFeed(feedId);
 	}
 
 	pubRemoveFeed(feedId) {

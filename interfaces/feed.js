@@ -1,6 +1,18 @@
 const constants = require('../util/constants');
 
-const { removeFeedChannel, addFeedChannel, getFeedChannels, getFeedLastStatus, getFeedLink, removeFeed, setFeedLastStatus, feedExists, addFeed, getFeedColor, setFeedColor } = require('../util/database');
+const {
+	getFeedLocation,
+	removeFeedGuild,
+	addFeedGuild,
+	getFeedGuilds,
+	hasFeedGuild,
+	getFeedLastStatus,
+	getFeedLink,
+	removeFeed,
+	setFeedLastStatus,
+	feedExists,
+	addFeed
+} = require('../util/database');
 
 const distributor = require('../components/distributor');
 
@@ -8,7 +20,7 @@ module.exports = class {
 	constructor(id) {
 		this.data = {
 			id,
-			redisLocation: `${constants.REDIS}:${constants.redis.FEEDS}:${id}`,
+			redisLocation: getFeedLocation(id),
 			ready: false,
 			exists: true,
 			heldPromises: []
@@ -81,67 +93,60 @@ module.exports = class {
 		});
 	}
 
-	getColor() {
+	getGuilds() {
 		if (!this.exists()) return Promise.reject();
 
 		if (this.isReady())
-			return getFeedColor(this.data.redisLocation);
+			return getFeedGuilds(this.data.redisLocation);
 
 		return new Promise((resolve) => {
 			this.data.heldPromises.push(async () => {
-				resolve(await getFeedColor(this.data.redisLocation));
+				resolve(await getFeedGuilds(this.data.redisLocation));
 			});
 		});
 	}
 
-	setColor(color) {
+	hasGuild(guildId) {
 		if (!this.exists()) return Promise.reject();
 
 		if (this.isReady())
-			return setFeedColor(this.data.redisLocation, color);
+			return hasFeedGuild(this.data.redisLocation, guildId);
 
 		return new Promise((resolve) => {
 			this.data.heldPromises.push(async () => {
-				resolve(await setFeedColor(this.data.redisLocation, color));
+				resolve(await hasFeedGuild(this.data.redisLocation, guildId));
 			});
 		});
 	}
 
-	getChannels() {
+	addGuild(guildId) {
 		if (!this.exists()) return Promise.reject();
 
 		if (this.isReady())
-			return getFeedChannels(this.data.redisLocation);
+			return addFeedGuild(this.data.redisLocation, guildId);
 
 		return new Promise((resolve) => {
 			this.data.heldPromises.push(async () => {
-				resolve(await getFeedChannels(this.data.redisLocation));
+				resolve(await addFeedGuild(this.data.redisLocation, guildId));
 			});
 		});
 	}
 
-	addChannel(channelId) {
+	removeGuild(guildId) {
 		if (!this.exists()) return Promise.reject();
 
 		if (this.isReady())
-			return addFeedChannel(this.data.redisLocation, channelId);
+			return removeFeedGuild(this.data.redisLocation, guildId);
 
 		return new Promise((resolve) => {
 			this.data.heldPromises.push(async () => {
-				resolve(await addFeedChannel(this.data.redisLocation, channelId));
-			});
-		});
-	}
+				await removeFeedGuild(this.data.redisLocation, guildId);
+				const guilds = await this.getGuilds();
 
-	removeChannel(channelId) {
-		if (!this.exists()) return Promise.reject();
+				if (guilds.length === 0)
+					await this.delete();
 
-		if (this.isReady())
-			return removeFeedChannel(this.data.redisLocation, channelId);
-
-		return new Promise((resolve) => {
-			this.data.heldPromises.push(async () => {
-				resolve(await removeFeedChannel(this.data.redisLocation, channelId));
+				resolve();
 			});
 		});
 	}
@@ -149,11 +154,14 @@ module.exports = class {
 	delete() {
 		if (!this.exists()) return Promise.reject();
 
-		if (this.isReady())
+		if (this.isReady()) {
+			this.data.exists = false;
 			return removeFeed(this.data.id);
+		}
 
 		return new Promise((resolve) => {
 			this.data.heldPromises.push(async () => {
+				this.data.exists = false;
 				resolve(await removeFeed(this.data.id));
 			});
 		});

@@ -1,5 +1,4 @@
 const config = require('../config/config.json');
-const constants = require('../util/constants');
 const transformations = require('../util/rsstransformations');
 
 const feedRead = require('davefeedread');
@@ -24,17 +23,20 @@ class FeedManager {
 		for (const [feedId, feed] of this.data.feeds)
 			this.getNewArticles(feedId, feed).then(articles => {
 				// Everything works, we have the new articles for this feed
+				// emit them to the discord stuff so they can color and send them
 				distributor.emitNewFeedArticles(feedId, articles);
 			}).catch(() => {
 				// Feed doesn't exist, can ignore and remove safely
-				this.unwatchFeed(feedId);
+				// Idk why this would happen, should most likely log it because something broke
+				this.data.feeds.delete(feedId);
+				console.warn(`Feed was not removed from instance when removed from redis!`);
 			});
 
 		this.data.lastUpdate = newTime;
 	}
 
 	getNewArticles(feedId, feed=this.data.feeds.get(feedId)) {
-		if (!feed.exists()) return Promise.reject(feedId);
+		if (feed === undefined || !feed.exists()) return Promise.reject(feedId);
 		const transforms = config.rssSpecialCare[feedId] ? config.rssSpecialCare[feedId] : [];
 
 		return new Promise(resolve => {feedRead.parseUrl(feed.getLink(), config.rssTimeout, (err, {items}) => {
@@ -42,6 +44,7 @@ class FeedManager {
 
 			if (err) {
 				// Handle and error like nothing is really wrong, just update the status of the feed and act like no new articles exist
+				// Because thats technically true
 				feed.setLastStatus(`Site gave error: ${err.status}`);
 			} else {
 				for (let item of items)
@@ -72,19 +75,33 @@ class FeedManager {
 		})});
 	}
 
-	watchFeed(feedId) {
-		if (!this.feedWatched(feedId))
-			this.data.feeds.set(feedId, new FeedInterface(feedId));
+	subscribeFeed(feedId, guildId) {
+		let feed = '';
+
+		if (!this.hasFeed(feedId)) {
+			feed = new FeedInterface(feedId);
+			this.data.feeds.set(feedId, feed);
+		} else {
+			feed = this.data.feeds.get(feedId);
+		}
+
+		return feed.addGuild(guildId);
 	}
 
-	unwatchFeed(feedId) {
-		this.data.feeds.delete(feedId);
+	async unsubscribeFeed(feedId, guildId) {
+		if (this.hasFeed(feedId)) {
+			const feed = this.data.feeds.get(feedId);
+			feed.removeGuild(guildId);
+
+			if (!feed.exists())
+				this.data.feeds.delete(feedId);
+		}
+		return Promise.resolve();
 	}
 
-	feedWatched(feedId) {
+	hasFeed(feedId) {
 		return this.data.feeds.has(feedId);
 	}
-
 }
 
 module.exports = new FeedManager();
