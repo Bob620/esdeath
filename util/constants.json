@@ -28,16 +28,19 @@
     "feeds": {
       "LINK": "link",
       "LASTSTATUS": "laststatus",
-      "CHANNELS": "channels"
+      "GUILDS": "guilds"
     }
   },
   "distributor": {
     "events": {
-      "WATCHFEED": "watchFeed",
-      "UNWATCHFEED": "unwatchFeed",
       "ADDFEED": "addFeed",
       "REMOVEFEED": "removeFeed",
       "NEWFEEDARTICLES": "newFeedArticles"
     }
+  },
+  "defaults": {
+    "guildFeedLimit": 5,
+    "guildPrefix": "^",
+    "guildChannelLimit": 5
   }
 }
