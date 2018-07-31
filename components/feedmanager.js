@@ -12,10 +12,19 @@ class FeedManager {
 		this.data = {
 			feeds: new Map(),
 			timer: undefined,
-			lastUpdate: Date.now()
+			lastUpdate: Date.now(),
+			updateIntervalInMin: config.feedInterval
 		};
 
 		this.data.timer = setTimeout(this.updateAllFeeds, config.feedInterval*60000); // Convert to minutes
+	}
+
+	lastUpdateTime() {
+		return this.data.lastUpdate;
+	}
+
+	getUpdateInterval() {
+		return this.data.updateIntervalInMin;
 	}
 
 	updateAllFeeds() {
@@ -45,7 +54,7 @@ class FeedManager {
 			if (err) {
 				// Handle and error like nothing is really wrong, just update the status of the feed and act like no new articles exist
 				// Because thats technically true
-				feed.setLastStatus(`Site gave error: ${err.status}`);
+				feed.setLastStatus(`Site gave error - ${err.status}`);
 			} else {
 				for (let item of items)
 					// Assume the pubdate will never get transformed
