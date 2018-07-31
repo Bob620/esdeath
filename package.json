@@ -18,6 +18,7 @@
   "homepage": "https://github.com/Bob620/esdeath#readme",
   "dependencies": {
     "davefeedread": "^0.4.14",
+    "discord.js": "^11.3.2",
     "redis": "^2.8.0"
   }
 }
