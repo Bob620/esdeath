@@ -24,9 +24,9 @@ class FeedService extends EventEmitter {
 		this.data.timer.setHook('general', 5, this.checkArticles.bind(this));
 
 		// Get all the feed Ids that are currently active (in redis)
-		getFeeds().then(feedIds => {
+		getFeeds().then(async feedIds => {
 			for (const feedId of feedIds)
-				this.initFeed(feedId);
+				await this.initFeed(feedId);
 		});
 	}
 
@@ -173,8 +173,19 @@ class FeedService extends EventEmitter {
 	 * Initialize a live, workable, feed in memory
 	 * @param feedId
 	 */
-	initFeed(feedId) {
+	async initFeed(feedId) {
+		const feed = await this.getFeed(feedId);
 
+		try {
+			const {items} = await feedRequester.getFeedArticles(feed);
+
+			if (items[0].pubdate)
+				await feed.setLastItemTime(Date.parse(items[0].pubdate));
+			else
+				await feed.setLastItemTime(Date.now());
+		} catch(err) {
+			console.warn(err);
+		}
 	}
 
 	/**

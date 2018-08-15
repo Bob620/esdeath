@@ -715,6 +715,30 @@ const database = {
 		} else
 			return redis.s.rem(`${feedLocation}:${constants.redis.feeds.GUILDS}`, guildId);
 	},
+	addFeedGuildChannel: async (feedLocation, guildId, channelId) => {
+		if (devMode) {
+			try {
+				const response = await redis.s.add(`${feedLocation}:${constants.redis.feeds.GUILDS}:${guildId}:${constants.redis.feeds.guilds.CHANNELS}`, channelId);
+				console.info(`[Redis] DONE addFeedGuildChannel ${feedLocation} ${channelId}`);
+				return response;
+			} catch(err) {
+				console.warn(`[Redis] FAIL addFeedGuildChannel ${feedLocation} ${channelId}`);
+			}
+		} else
+			return redis.s.add(`${feedLocation}:${constants.redis.feeds.GUILDS}:${guildId}:${constants.redis.feeds.guilds.CHANNELS}`, channelId);
+	},
+	removeFeedGuildChannel: async (feedLocation, guildId, channelId) => {
+		if (devMode) {
+			try {
+				const response = await redis.s.rem(`${feedLocation}:${constants.redis.feeds.GUILDS}:${guildId}:${constants.redis.feeds.guilds.CHANNELS}`, channelId);
+				console.info(`[Redis] DONE removeFeedGuildChannel ${feedLocation} ${channelId}`);
+				return response;
+			} catch(err) {
+				console.warn(`[Redis] FAIL removeFeedGuildChannel ${feedLocation} ${channelId}`);
+			}
+		} else
+			return redis.s.rem(`${feedLocation}:${constants.redis.feeds.GUILDS}:${guildId}:${constants.redis.feeds.guilds.CHANNELS}`, channelId);
+	},
 	getFeeds: async () => {
 		if (devMode) {
 			try {
