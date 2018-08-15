@@ -24,11 +24,22 @@
       }
     },
 
-    "FEEDS": "esdeath:feeds",
+    "FEEDS": "feeds",
     "feeds": {
       "LINK": "link",
       "LASTSTATUS": "laststatus",
-      "GUILDS": "guilds"
+      "GUILDS": "guilds",
+      "guilds": {
+        "CHANNELS": "channels"
+      },
+      "SUPPORTS": "supports",
+      "TYPE": "type",
+      "ETAG": "etag",
+      "LASTMODIFIED": "lastmodified",
+      "THUMBNAIL": "thumbnail",
+      "TITLE": "title",
+      "HUB": "hub",
+      "LASTITEMTIME": "lastitemtime"
     }
   },
   "distributor": {
@@ -44,5 +55,13 @@
     "GUILDCHANNELLIMIT": 5
   },
   "FEEDINFOCOLOR": 11337824,
-  "GUILDPREFIXMAXLENGTH": 2
+  "FEEDDEFAULTCOLOR": 30381,
+  "GUILDPREFIXMAXLENGTH": 2,
+  "feed": {
+    "MAXSUMMARYLENGTH": 600,
+    "types": {
+      "HEAD": "head",
+      "PUBSUBHUBBUB": "PuSH"
+    }
+  }
 }

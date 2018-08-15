@@ -1,169 +1,189 @@
-const constants = require('../util/constants');
-
 const {
 	getFeedLocation,
-	removeFeedGuild,
-	addFeedGuild,
 	getFeedGuilds,
 	hasFeedGuild,
 	getFeedLastStatus,
 	getFeedLink,
-	removeFeed,
 	setFeedLastStatus,
 	feedExists,
-	addFeed
+	feedSupports,
+	getFeedSupports,
+	getFeedLastItemTime,
+	getFeedGuildChannels,
+	getFeedLastModified,
+	getFeedType,
+	getFeedThumbnail,
+	getFeedETag,
+	getFeedTitle,
+	getFeedHub,
+	setFeedHub,
+	setFeedETag,
+	setFeedLastModified,
+	setFeedLastItemTime,
+	setFeedType,
+	setFeedThumbnail,
+	setFeedTitle,
+	addFeedSupports,
+	removeFeedSupports
 } = require('../util/database');
-
-const distributor = require('../components/distributor');
 
 module.exports = class {
 	constructor(id) {
 		this.data = {
 			id,
-			redisLocation: getFeedLocation(id),
-			ready: false,
-			exists: true,
-			heldPromises: []
-		};
-
-		distributor.on(constants.distributor.events.REMOVEFEED, feedId => {
-			if (feedId === id)
-				this.data.exists = false;
-		});
-
-		this.populate().then(() => {
-			for (const promise of this.data.heldPromises) {
-				promise();
-			}
-			this.data.heldPromises = undefined;
-		}).catch(() => {});
-	}
-
-	async populate() {
-		if (!await feedExists(this.data.id)) {
-			await addFeed(this.data.id);
+			redisLocation: getFeedLocation(id)
 		}
-		this.data.ready = true;
-	}
-
-	isReady() {
-		return this.data.ready;
 	}
 
 	exists() {
-		return this.data.exists;
+		return feedExists(this.getId());
 	}
 
-	getLink() {
-		if (!this.exists()) return Promise.reject();
+	async supports(value) {
+		if (!await this.exists()) return Promise.reject();
 
-		if (this.isReady())
-			return getFeedLink(this.data.redisLocation);
-
-		return new Promise((resolve) => {
-			this.data.heldPromises.push(async () => {
-				resolve(await getFeedLink(this.data.redisLocation));
-			});
-		});
+		return feedSupports(this.data.redisLocation, value);
 	}
 
-	getLastStatus() {
-		if (!this.exists()) return Promise.reject();
+	async getAllSupports() {
+		if (!await this.exists()) return Promise.reject();
 
-		if (this.isReady())
-			return getFeedLastStatus(this.data.redisLocation);
-
-		return new Promise((resolve) => {
-			this.data.heldPromises.push(async () => {
-				resolve(await getFeedLastStatus(this.data.redisLocation));
-			});
-		});
+		return getFeedSupports(this.data.redisLocation);
 	}
 
-	setLastStatus(lastStatus) {
-		if (!this.exists()) return Promise.reject();
+	async getLastItemTime() {
+		if (!await this.exists()) return Promise.reject();
 
-		if (this.isReady())
-			return setFeedLastStatus(this.data.redisLocation, lastStatus);
-
-		return new Promise((resolve) => {
-			this.data.heldPromises.push(async () => {
-				resolve(await setFeedLastStatus(this.data.redisLocation, lastStatus));
-			});
-		});
+		return getFeedLastItemTime(this.data.redisLocation);
 	}
 
-	getGuilds() {
-		if (!this.exists()) return Promise.reject();
-
-		if (this.isReady())
-			return getFeedGuilds(this.data.redisLocation);
-
-		return new Promise((resolve) => {
-			this.data.heldPromises.push(async () => {
-				resolve(await getFeedGuilds(this.data.redisLocation));
-			});
-		});
+	async getId() {
+		return this.data.id;
 	}
 
-	hasGuild(guildId) {
-		if (!this.exists()) return Promise.reject();
+	async getGuilds() {
+		if (!await this.exists()) return Promise.reject();
 
-		if (this.isReady())
-			return hasFeedGuild(this.data.redisLocation, guildId);
-
-		return new Promise((resolve) => {
-			this.data.heldPromises.push(async () => {
-				resolve(await hasFeedGuild(this.data.redisLocation, guildId));
-			});
-		});
+		return getFeedGuilds(this.data.redisLocation);
 	}
 
-	addGuild(guildId) {
-		if (!this.exists()) return Promise.reject();
+	async getGuildChannels(guildId) {
+		if (!await this.exists()) return Promise.reject();
 
-		if (this.isReady())
-			return addFeedGuild(this.data.redisLocation, guildId);
-
-		return new Promise((resolve) => {
-			this.data.heldPromises.push(async () => {
-				resolve(await addFeedGuild(this.data.redisLocation, guildId));
-			});
-		});
+		return getFeedGuildChannels(this.data.redisLocation, guildId);
 	}
 
-	removeGuild(guildId) {
-		if (!this.exists()) return Promise.reject();
+	async getLink() {
+		if (!await this.exists()) return Promise.reject();
 
-		if (this.isReady())
-			return removeFeedGuild(this.data.redisLocation, guildId);
-
-		return new Promise((resolve) => {
-			this.data.heldPromises.push(async () => {
-				await removeFeedGuild(this.data.redisLocation, guildId);
-				const guilds = await this.getGuilds();
-
-				if (guilds.length === 0)
-					await this.delete();
-
-				resolve();
-			});
-		});
+		return getFeedLink(this.data.redisLocation);
 	}
 
-	delete() {
-		if (!this.exists()) return Promise.reject();
+	async getLastStatus() {
+		if (!await this.exists()) return Promise.reject();
 
-		if (this.isReady()) {
-			this.data.exists = false;
-			return removeFeed(this.data.id);
-		}
+		return getFeedLastStatus(this.data.redisLocation);
+	}
 
-		return new Promise((resolve) => {
-			this.data.heldPromises.push(async () => {
-				this.data.exists = false;
-				resolve(await removeFeed(this.data.id));
-			});
-		});
+	async getLastModified() {
+		if (!await this.exists()) return Promise.reject();
+
+		return getFeedLastModified(this.data.redisLocation);
+	}
+
+	async getHub() {
+		if (!await this.exists()) return Promise.reject();
+
+		return getFeedHub(this.data.redisLocation);
+	}
+
+	async getTitle() {
+		if (!await this.exists()) return Promise.reject();
+
+		return getFeedTitle(this.data.redisLocation);
+	}
+
+	async getThumbnail() {
+		if (!await this.exists()) return Promise.reject();
+
+		return getFeedThumbnail(this.data.redisLocation);
+	}
+
+	async getType() {
+		if (!await this.exists()) return Promise.reject();
+
+		return getFeedType(this.data.redisLocation);
+	}
+
+	async getETag() {
+		if (!await this.exists()) return Promise.reject();
+
+		return getFeedETag(this.data.redisLocation);
+	}
+
+	async setHub(hubUrl) {
+		if (!await this.exists()) return Promise.reject();
+
+		return setFeedHub(this.data.redisLocation, hubUrl);
+	}
+
+	async setType(feedType) {
+		if (!await this.exists()) return Promise.reject();
+
+		return setFeedType(this.data.redisLocation, feedType);
+	}
+
+	async setTitle(title) {
+		if (!await this.exists()) return Promise.reject();
+
+		return setFeedTitle(this.data.redisLocation, title);
+	}
+
+	async setThumbnail(url) {
+		if (!await this.exists()) return Promise.reject();
+
+		return setFeedThumbnail(this.data.redisLocation, url);
+	}
+
+	async setLastModified(lastModified) {
+		if (!await this.exists()) return Promise.reject();
+
+		return setFeedLastModified(this.data.redisLocation, lastModified);
+	}
+
+	async setLastItemTime(itemTime) {
+		if (!await this.exists()) return Promise.reject();
+
+		return setFeedLastItemTime(this.data.redisLocation, itemTime);
+	}
+
+	async setETag(etag) {
+		if (!await this.exists()) return Promise.reject();
+
+		return setFeedETag(this.data.redisLocation, etag);
+	}
+
+	async addSupport(value) {
+		if (!await this.exists()) return Promise.reject();
+
+		return addFeedSupports(this.data.redisLocation, value);
+	}
+
+	async removeSupport(value) {
+		if (!await this.exists()) return Promise.reject();
+
+		return removeFeedSupports(this.data.redisLocation, value);
+	}
+
+	async setLastStatus(lastStatus) {
+		if (!await this.exists()) return Promise.reject();
+
+		return setFeedLastStatus(this.data.redisLocation, lastStatus);
+	}
+
+	async hasGuild(guildId) {
+		if (!await this.exists()) return Promise.reject();
+
+		return hasFeedGuild(this.data.redisLocation, guildId);
 	}
 };

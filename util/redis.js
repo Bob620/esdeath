@@ -17,8 +17,11 @@ module.exports = {
 		add: promisify(client.sadd).bind(client),
 		rem: promisify(client.srem).bind(client),
 		members: promisify(client.smembers).bind(client),
-		isMember: (...values) => { new Promise((resolve) => {
-			resolve(!!client.sismember.call(client, ...values));
+		isMember: (...values) => { return new Promise((resolve, reject) => {
+			client.sismember(...values, (err, value) => {
+				if (err) reject(err);
+				resolve(!!value);
+			});
 		})}
 	}
 };

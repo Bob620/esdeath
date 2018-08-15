@@ -18,8 +18,12 @@
   },
   "homepage": "https://github.com/Bob620/esdeath#readme",
   "dependencies": {
+    "colors": "^1.3.1",
     "davefeedread": "^0.4.14",
     "discord.js": "^11.3.2",
-    "redis": "^2.8.0"
+    "redis": "^2.8.0",
+    "request-promise-native": "^1.0.5",
+    "request": "latest",
+    "feedparser": "latest"
   }
 }
