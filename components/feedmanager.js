@@ -1,4 +1,5 @@
 const config = require('../config/config.json');
+const constants = require('../util/constants');
 const transformations = require('../util/rsstransformations');
 
 const feedRead = require('davefeedread');
@@ -16,7 +17,18 @@ class FeedManager {
 			updateIntervalInMin: config.feedInterval
 		};
 
-		this.data.timer = setTimeout(this.updateAllFeeds, config.feedInterval*60000); // Convert to minutes
+		distributor.on(constants.distributor.events.ADDFEED, async feedId => {
+			const feed = new FeedInterface(feedId);
+
+			if (await feed.getGuilds() && await feed.exists()) {
+				if (!this.hasFeed(feedId))
+					this.data.feeds.set(feedId, feed);
+			} else
+				if (this.hasFeed(feedId))
+					this.data.feeds.delete(feedId);
+		});
+
+		this.data.timer = setInterval(this.updateAllFeeds.bind(this), config.feedInterval*60000); // Convert to minutes
 	}
 
 	lastUpdateTime() {
@@ -34,7 +46,8 @@ class FeedManager {
 				// Everything works, we have the new articles for this feed
 				// emit them to the discord stuff so they can color and send them
 				distributor.emitNewFeedArticles(feedId, articles);
-			}).catch(() => {
+			}).catch(err => {
+				console.warn(err);
 				// Feed doesn't exist, can ignore and remove safely
 				// Idk why this would happen, should most likely log it because something broke
 				this.data.feeds.delete(feedId);
@@ -48,7 +61,7 @@ class FeedManager {
 		if (feed === undefined || !feed.exists()) return Promise.reject(feedId);
 		const transforms = config.rssSpecialCare[feedId] ? config.rssSpecialCare[feedId] : [];
 
-		return new Promise(resolve => {feedRead.parseUrl(feed.getLink(), config.rssTimeout, (err, {items}) => {
+		return new Promise(async resolve => {feedRead.parseUrl(await feed.getLink(), config.rssTimeout, (err, {items}) => {
 			let articles = [];
 
 			if (err) {
@@ -59,48 +72,45 @@ class FeedManager {
 				for (let item of items)
 					// Assume the pubdate will never get transformed
 					if (Date.parse(item.pubdate) > this.data.lastUpdate) {
-						for (const transform of transforms)
-							item = transformations[transform](item);
+							for (const transform of transforms)
+								item = transformations[transform](item);
 
-						// Workable item
-						articles.push({
-							title: item.title,
-							description: item.summary,
-							url: item.link,
-							timestamp: item.pubdate,
-							color: '',
-							thumbnail: {
-								url: item.image.url
-							},
-							author: {
-								name: item.author ? item.author : item.meta.title,
-								url: item.meta.link
-							}
-						});
-					}
+							// Workable item
+							articles.push({
+								title: item.title,
+								description: item.summary,
+								url: item.link,
+								timestamp: item.pubdate,
+								color: '',
+								thumbnail: {
+									url: item.image.url
+								},
+								author: {
+									name: item.author ? item.author : item.meta.title,
+									url: item.meta.link
+								}
+							});
+						}
 			}
 
+			feed.setLastStatus(`${articles.length} ${articles.length === 1 ? 'new article' : 'new articles'}`);
 			resolve(articles);
 		})});
 	}
 
 	subscribeFeed(feedId, guildId) {
-		let feed = '';
-
-		if (!this.hasFeed(feedId)) {
-			feed = new FeedInterface(feedId);
-			this.data.feeds.set(feedId, feed);
-		} else {
-			feed = this.data.feeds.get(feedId);
+		if (!this.hasFeed(feedId))
+			this.data.feeds.set(feedId, new FeedInterface(feedId, guildId));
+		else {
+			const feed = this.data.feeds.get(feedId);
+			feed.addGuild(guildId);
 		}
-
-		return feed.addGuild(guildId);
 	}
 
 	async unsubscribeFeed(feedId, guildId) {
 		if (this.hasFeed(feedId)) {
 			const feed = this.data.feeds.get(feedId);
-			feed.removeGuild(guildId);
+			await feed.removeGuild(guildId);
 
 			if (!feed.exists())
 				this.data.feeds.delete(feedId);

@@ -38,13 +38,13 @@ class FeedService extends EventEmitter {
 	async checkForHeadUpdates(altFeed) {
 		if (altFeed) {
 			const supports = await altFeed.getAllSupports();
-			if (supports.length === 1 && supports.includes(constants.feed.types.HEAD))
+			if (!supports.includes(constants.feed.types.PUBSUBHUBBUB) && supports.includes(constants.feed.types.HEAD) || supports.includes('etag') || supports.includes('last-modified'))
 				if (await feedRequester.checkUpdatedHead(altFeed))
 					await this.updateFeedArticles(altFeed);
 		} else
 			for (const [, feed] of this.data.feeds) {
 				const supports = await altFeed.getAllSupports();
-				if (supports.length === 1 && supports.includes(constants.feed.types.HEAD))
+				if (!supports.includes(constants.feed.types.PUBSUBHUBBUB) && supports.includes(constants.feed.types.HEAD) || supports.includes('etag') || supports.includes('last-modified'))
 					if (await feedRequester.checkUpdatedHead(feed))
 						await this.updateFeedArticles(feed);
 			}
@@ -97,7 +97,7 @@ class FeedService extends EventEmitter {
 		const lastItemTime = await feed.getLastItemTime();
 		for (const item of articles.items)
 			if (Date.parse(item.pubdate) > lastItemTime)
-				this.emit('newArticle', feed, item); // Provides the feed Interface and Item, enough info to work with
+				this.emit(constants.distributor.events.NEWFEEDARTICLES, feed, item); // Provides the feed Interface and Item, enough info to work with
 			else
 				break;
 	}
@@ -107,14 +107,18 @@ class FeedService extends EventEmitter {
 	 * @param feedId
 	 */
 	async createFeed(feedId) {
-		const feedIds = this.getFeedIds();
-		if (!feedIds.includes(feedId))
-			await addFeed(feedId);
+		try {
+			const feedIds = await this.getFeedIds();
+			if (!feedIds.includes(feedId))
+				await addFeed(feedId);
 
-		const feed = new FeedInterface(feedId);
-		this.data.feeds.set(feedId, feed);
+			const feed = new FeedInterface(feedId);
+			this.data.feeds.set(feedId, feed);
 
-		return feed;
+			return feed;
+		} catch(err) {
+			console.log(err);
+		}
 	}
 
 	/**
@@ -122,7 +126,7 @@ class FeedService extends EventEmitter {
 	 * @param feedId
 	 */
 	async deleteFeed(feedId) {
-		const feedIds = this.getFeedIds();
+		const feedIds = await this.getFeedIds();
 		if (feedIds.includes(feedId))
 			await removeFeed(this.data.id);
 
@@ -224,9 +228,45 @@ class FeedService extends EventEmitter {
 				const feedChannels = await feed.getGuildChannels(guildId);
 				for (const channelId of channelIds)
 					if (feedChannels.includes(channelId))
-						removeFeedGuildChannel(feed.data.redisLocation, guildId, channelId);
+						await removeFeedGuildChannel(feed.data.redisLocation, guildId, channelId);
+
+				const test = await feed.getGuilds();
+				if (test.length < 0)
+					await removeFeedGuild(feed.data.redisLocation, guildId);
 			} else
 				await removeFeedGuild(feed.data.redisLocation, guildId);
+	}
+
+	async getChannelSubscriptions(guildId, channelId) {
+		const feedIds = await this.getFeedIds();
+		let subs = [];
+
+		for (const feedId of feedIds) {
+			const feed = await this.getFeed(feedId);
+
+			if (feed.hasGuildChannel(guildId, channelId))
+				subs.push(feedId);
+		}
+
+		return subs;
+	}
+
+	async getGuildSubscriptions(guildId) {
+		try {
+			const feedIds = await this.getFeedIds();
+			let subs = [];
+
+			for (const feedId of feedIds) {
+				const feed = await this.getFeed(feedId);
+
+				if (feed.hasGuild(guildId))
+					subs.push(feedId);
+			}
+
+			return subs;
+		} catch(err) {
+			console.log(err);
+		}
 	}
 }
 

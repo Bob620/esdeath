@@ -47,7 +47,11 @@ class DiscordManager {
 
 		client.on('message', async message => {
 			if (!message.system && !message.author.bot) {
-				const guildInterface = this.data.guilds.get(message.guild.id);
+				const guildInterface = this.data.guilds.has(message.guild.id) ? this.data.guilds.get(message.guild.id) : (() => {
+					const guild = new GuildInterface(message.guild.id);
+					this.data.guilds.set(guild.data.id, guild);
+					return guild;
+				})();
 
 				if (message.cleanContent.startsWith(await guildInterface.getPrefix())) {
 					const command = message.cleanContent.split(' ');
@@ -63,17 +67,17 @@ class DiscordManager {
 										title: 'Feed Information',
 										description: 'This shows general information about the feeds you have running',
 										color: constants.FEEDINFOCOLOR,
-										timestamp: feedManager.lastUpdateTime(),
+										timestamp: new Date(feedManager.lastUpdateTime()).toISOString(),
 										footer: {
 											icon_url: 'https://cdn.discordapp.com/embed/avatars/0.png',
-											text: 'Feeds updated on'
+											text: 'Feeds updated'
 										},
 										fields: [
 											{
 												name: 'General Info',
-												value: `Max Feeds: ${await guildInterface.getFeedLimit()}\nMax Channels: ${guildInterface.getChannelLimit()}\nCommand Prefix: ${guildInterface.getPrefix()}\nOp Roles: ${message.guild.roles.map(role => {
-													if (opRoles.includes(role.id)) return '@' + role.name;
-												}).join(', ')}\nFeed Update: Every ${feedManager.getUpdateInterval()} Minutes`
+												value: `Max Feeds: ${await guildInterface.getFeedLimit()}\nMax Channels: ${await guildInterface.getChannelLimit()}\nCommand Prefix: ${await guildInterface.getPrefix()}\nOp Roles: ${message.guild.roles.array().filter(role => {
+													return opRoles.includes(role.id);
+												}).join(', ')}\nFeeds update every ${feedManager.getUpdateInterval()} minutes`
 											}
 										]
 									}
@@ -81,117 +85,158 @@ class DiscordManager {
 
 								for (const feedId of await guildInterface.getFeeds()) {
 									const feedInterface = new FeedInterface(feedId);
+									const feedChannels = await guildInterface.getFeedChannels(feedId);
+
 									returnMessage.embed.fields.push({
 										name: await feedInterface.getLink(),
-										value: `Status: ${await feedInterface.getLastStatus()}\nColor: #${await guildInterface.getFeedColor(feedId).toString(16)}\nChannels: ${(await guildInterface.getFeedChannels()).map(channelId => {
-											return '#' + message.guild.channels.find(channelId).name;
+										value: `Status: ${await feedInterface.getLastStatus()}\nColor: #${parseInt(await guildInterface.getFeedColor(feedId)).toString(16).padStart(6, '0')}\nChannels: ${message.guild.channels.array().filter(channel => {
+											return feedChannels.includes(channel.id);
 										}).join(', ')}`
 									});
 								}
 
-								message.reply(returnMessage).then(() => {}).catch(err => {
+								message.channel.send(returnMessage).then(() => {}).catch(err => {
 									console.log(err);
 								});
 								break;
 							case 'changeprefix':
 								if (command[1])
-									if (command[1].length >= constants.GUILDPREFIXMAXLENGTH) {
+									if (command[1].length <= constants.GUILDPREFIXMAXLENGTH) {
 										await guildInterface.setPrefix(command[1].toLowerCase());
-										message.reply(`Command prefix changed to ${command[1].toLowerCase()}`).then(() => {}).catch(err => {
+										message.channel.send(`Command prefix changed to ${command[1].toLowerCase()}`).then(() => {}).catch(err => {
 											console.log(err);
 										});
 									} else
-										message.reply(`Command prefix can not be longer than ${constants.GUILDPREFIXMAXLENGTH} characters`).then(() => {}).catch(err => {
+										message.channel.send(`Command prefix can not be longer than ${constants.GUILDPREFIXMAXLENGTH} characters`).then(() => {}).catch(err => {
 											console.log(err);
 										});
 								else
-									message.reply(`${command[0]} prefix`).then(() => {}).catch(err => {
+									message.channel.send(`${command[0]} prefix`).then(() => {}).catch(err => {
 										console.log(err);
 									});
 								break;
+							case 'changecolor':
+								if (command[1] && command[2])
+									if (/^#?[0-9a-zA-Z]{6}$/gmi.test(command[2]))
+										if (await guildInterface.hasFeed(command[1])) {
+											await guildInterface.setFeedColor(command[1], parseInt(command[2].replace('#', ''), 16));
+											message.channel.send(`Feed color has been changed`).then(() => {}).catch(err => {
+												console.log(err);
+											});
+										} else
+											message.channel.send(`This server does not use that feed`).then(() => {}).catch(err => {
+												console.log(err);
+											});
+									else
+										message.channel.send(`${command[0]} feedLink HexColor\nHexColor must be all 6 characters`).then(() => {}).catch(err => {
+											console.log(err);
+										});
+								else
+									message.channel.send(`${command[0]} feedLink HexColor`).then(() => {}).catch(err => {
+										console.log(err);
+									});
+								break;
+							case 'addroles':
 							case 'addrole':
 								if (message.member.hasPermission([], false, true, true))
 									if (command[1]) {
-										let roleNames = [];
-										for (const role of message.mentions.roles) {
-											roleNames.push(role.name);
-											await guildInterface.addOpRole(role.id);
+										let roles = [];
+										for (const [roleId, role] of message.mentions.roles) {
+											roles.push(role);
+											await guildInterface.addOpRole(roleId);
 										}
 
-										message.reply(`@${roleNames.join(', @')} added as op role(s)`).then(() => {}).catch(err => {
+										message.channel.send(`${roles.join(', ')} added as op role(s)`).then(() => {}).catch(err => {
 											console.log(err);
 										});
 									} else
-										message.reply(`${command[0]} @role [...@role]`).then(() => {}).catch(err => {
+										message.channel.send(`${command[0]} @role [...@role]`).then(() => {}).catch(err => {
 											console.log(err);
 										});
 								break;
+							case 'removeroles':
 							case 'removerole':
 								if (message.member.hasPermission([], false, true, true))
 									if (command[1]) {
-										let roleNames = [];
-										for (const role of message.mentions.roles)
-											if (await guildInterface.hasOpRole(role.id)) {
-												roleNames.push(role.name);
-												await guildInterface.removeOpRole(role.id);
+										let roles = [];
+										for (const [roleId, role] of message.mentions.roles) {
+											if (await guildInterface.hasOpRole(roleId)) {
+												roles.push(role);
+												await guildInterface.removeOpRole(roleId);
 											}
+										}
 
-										message.reply(`@${roleNames.join(', @')} removed`).then(() => {}).catch(err => {
-											console.log(err);
-										});
+										if (roles.length > 0)
+											message.channel.send(`${roles.join(', ')} removed`).then(() => {
+											}).catch(err => {
+												console.log(err);
+											});
+										else
+											message.channel.send(`No roles needed to be removed`).then(() => {
+											}).catch(err => {
+												console.log(err);
+											});
 									} else
-										message.reply(`${command[0]} @role [...@role]`).then(() => {}).catch(err => {
+										message.channel.send(`${command[0]} @role [...@role]`).then(() => {}).catch(err => {
 											console.log(err);
 										});
 								break;
 							case 'addfeed':
 								if (command[1] && command[2]) {
-									let channelNames = [];
-									if (await guildInterface.hasFeed(command[1]))
-										await guildInterface.addFeed(command[1]);
+									let channels = [];
+									if (!await guildInterface.hasFeed(command[1])) {
+										await feedManager.subscribeFeed(command[1], message.guild.id);
+										await guildInterface.addFeed(command[1], constants.FEEDDEFAULTCOLOR, message.mentions.channels.array().map(channel => {
+											channels.push(channel);
+											return channel.id;
+										}));
+									} else
+										for (const [channelId, channel] of message.mentions.channels) {
+											channels.push(channel);
+											await guildInterface.addFeedChannel(command[1], channelId);
+										}
 
-									for (const channel of message.mentions.channels) {
-										channelNames.push(channel.name);
-										await guildInterface.addFeedChannel(channel.id);
-									}
-
-									message.reply(`#${channelNames.join(', #')} added to feed update`).then(() => {}).catch(err => {
+									message.channel.send(`${channels.join(', ')} added to feed update`).then(() => {}).catch(err => {
 										console.log(err);
 									});
 								} else
-									message.reply(`${command[0]} feedLink #channel [...#channel]`).then(() => {}).catch(err => {
+									message.channel.send(`${command[0]} feedLink #channel [...#channel]`).then(() => {}).catch(err => {
 										console.log(err);
 									});
 								break;
 							case 'removefeed':
 								if (command[1]) {
-									let channelNames = [];
+									let channels = [];
 									if (command[2]) {
-										for (const channel of message.mentions.channels)
-											if (await guildInterface.hasFeedChannel(channel.id)) {
-												channelNames.push(channel.name);
-												await guildInterface.removeFeedChannel(channel.id);
+										for (const [channelId, channel] of message.mentions.channels)
+											if (await guildInterface.hasFeedChannel(command[1], channelId)) {
+												channels.push(channel);
+												await guildInterface.removeFeedChannel(command[1], channelId);
 											}
 
-										message.reply(`#${channelNames.join(', #')} removed from feed update`).then(() => {
+										if (await guildInterface.getFeedChannels(command[1]).length === 0)
+											await feedManager.unsubscribeFeed(command[1], message.guild.id);
+
+										message.channel.send(`${channels.join(', ')} removed from feed update`).then(() => {
 										}).catch(err => {
 											console.log(err);
 										});
 									} else
 										if (await guildInterface.hasFeed(command[1])) {
 											await guildInterface.removeFeed(command[1]);
+											await feedManager.unsubscribeFeed(command[1], message.guild.id);
 
-											message.reply(`All channels removed from feed update`).then(() => {
+											message.channel.send(`All channels removed from feed update`).then(() => {
 											}).catch(err => {
 												console.log(err);
 											});
 										} else
-											message.reply(`Unable to find any channels with that feed`).then(() => {
+											message.channel.send(`Unable to find any channels with that feed`).then(() => {
 											}).catch(err => {
 												console.log(err);
 											});
 								} else
-									message.reply(`${command[0]} feedLink\n${command[0]} feedLink [...#channel] (To remove a feed from specific channels)`).then(() => {}).catch(err => {
+									message.channel.send(`${command[0]} feedLink\n${command[0]} feedLink [...#channel] (To remove a feed from specific channels)`).then(() => {}).catch(err => {
 										console.log(err);
 									});
 								break;

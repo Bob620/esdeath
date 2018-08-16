@@ -16,21 +16,16 @@
         "PREFIX": "prefix",
         "OPROLES": "oproles",
         "CHANNELLIMIT": "channellimit"
-      },
-      "FEEDS": "feeds",
-      "feeds": {
-        "COLOR": "color",
-        "CHANNELS": "channels"
       }
     },
-
     "FEEDS": "feeds",
     "feeds": {
       "LINK": "link",
       "LASTSTATUS": "laststatus",
       "GUILDS": "guilds",
       "guilds": {
-        "CHANNELS": "channels"
+        "CHANNELS": "channels",
+        "COLOR": "color"
       },
       "SUPPORTS": "supports",
       "TYPE": "type",

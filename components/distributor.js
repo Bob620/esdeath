@@ -3,6 +3,10 @@ const EventEmitter = require('events');
 const config = require('../config/config.json');
 const constants = require('../util/constants');
 
+const {
+	getFeeds
+} = require('../util/database');
+
 const redis = require('redis');
 const redisPub = redis.createClient(config.redis);
 const redisSub = redis.createClient(config.redis);
@@ -26,7 +30,7 @@ class Distributor extends EventEmitter {
 		redisSub.on('message', (channel, message) => {
 			if (config.devMode) console.info(`[Redis] INFO channelEvent ${channel} ${message}`);
 
-			const {event, ...values} = message.split(' ');
+			const [event, ...values] = message.split(' ');
 
 			switch(event) {
 				case constants.redis.redisChannel.events.ADDFEED:
@@ -40,6 +44,11 @@ class Distributor extends EventEmitter {
 					break;
 			}
 		});
+	}
+
+	async initFeeds() {
+		for (const feedId of await getFeeds())
+			this.emitAddFeed(feedId);
 	}
 
 	emitAddFeed(feedId) {

@@ -33,9 +33,6 @@ const database = {
 			for (const role of await database.getGuildOpRoles(guildLocation))
 				guildRemovalPromises.push(database.removeGuildOpRole(guildLocation, role));
 
-			for (const feedId of await database.getGuildFeeds(guildLocation))
-				guildRemovalPromises.push(database.removeGuildFeed(guildLocation, guildId, feedId));
-
 			return Promise.all(guildRemovalPromises);
 		}
 	},
@@ -164,113 +161,6 @@ const database = {
 		} else
 		return redis.get(`${guildLocation}:${constants.redis.guilds.SETTINGS}:${constants.redis.guilds.settings.CHANNELLIMIT}`);
 	},
-	addGuildFeed: async (guildLocation, feedId, color, channels) => {
-		if (!await database.guildFeedExists(guildLocation, feedId)) {
-			await redis.s.add(`${guildLocation}:${constants.redis.guilds.FEEDS}`, feedId);
-
-			for (const channelId of channels)
-				await database.addGuildFeedChannel(guildLocation, feedId, channelId);
-
-			await database.setGuildFeedColor(guildLocation, feedId, color);
-		}
-	},
-	removeGuildFeed: async (guildLocation, guildId, feedId) => {
-		if (await database.guildFeedExists(guildLocation, feedId)) {
-			let channelPromises = [];
-
-			for (const channelId of await database.getGuildFeedChannels(guildLocation, feedId))
-				channelPromises.push(database.removeGuildFeedChannel(guildLocation, feedId, channelId));
-
-			channelPromises.push(redis.s.rem(`${guildLocation}:${constants.redis.guilds.FEEDS}`, feedId));
-			channelPromises.push(database.removeFeedGuild(database.getFeedLocation(feedId), guildId));
-
-			return Promise.all(channelPromises);
-		}
-	},
-	getGuildFeeds: async (guildLocation) => {
-		if (devMode) {
-			try {
-				const response = await redis.s.members(`${guildLocation}:${constants.redis.guilds.FEEDS}`);
-				console.info(`[Redis] DONE getGuildFeeds ${guildLocation}`);
-				return response;
-			} catch(err) {
-				console.warn(`[Redis] FAIL getGuildFeeds ${guildLocation}`);
-			}
-		} else
-		return redis.s.members(`${guildLocation}:${constants.redis.guilds.FEEDS}`);
-	},
-	addGuildFeedChannel: async (guildLocation, feedId, channelId) => {
-		if (devMode) {
-			try {
-				const response = await redis.s.add(`${guildLocation}:${constants.redis.guilds.FEEDS}:${feedId}:${constants.redis.guilds.feeds.CHANNELS}`, channelId);
-				console.info(`[Redis] DONE addGuildFeedChannel ${guildLocation} ${feedId} ${channelId}`);
-				return response;
-			} catch(err) {
-				console.warn(`[Redis] FAIL addGuildFeedChannel ${guildLocation} ${feedId} ${channelId}`);
-			}
-		} else
-		return redis.s.add(`${guildLocation}:${constants.redis.guilds.FEEDS}:${feedId}:${constants.redis.guilds.feeds.CHANNELS}`, channelId);
-	},
-	removeGuildFeedChannel: async (guildLocation, feedId, channelId) => {
-		if (devMode) {
-			try {
-				const response = await redis.s.rem(`${guildLocation}:${constants.redis.guilds.FEEDS}:${feedId}:${constants.redis.guilds.feeds.CHANNELS}`, channelId);
-				console.info(`[Redis] DONE removeGuildFeedChannel ${guildLocation} ${feedId} ${channelId}`);
-				return response;
-			} catch(err) {
-				console.warn(`[Redis] FAIL removeGuildFeedChannel ${guildLocation} ${feedId} ${channelId}`);
-			}
-		} else
-		return redis.s.rem(`${guildLocation}:${constants.redis.guilds.FEEDS}:${feedId}:${constants.redis.guilds.feeds.CHANNELS}`, channelId);
-	},
-	hasGuildFeedChannel: async (guildLocation, feedId, channelId) => {
-		if (devMode) {
-			try {
-				const response = await redis.s.isMember(`${guildLocation}:${constants.redis.guilds.FEEDS}:${feedId}:${constants.redis.guilds.feeds.CHANNELS}`, channelId);
-				console.info(`[Redis] DONE hasGuildFeedChannel ${guildLocation} ${feedId} ${channelId}`);
-				return response;
-			} catch(err) {
-				console.warn(`[Redis] FAIL hasGuildFeedChannel ${guildLocation} ${feedId} ${channelId}`);
-			}
-		} else
-		return redis.s.isMember(`${guildLocation}:${constants.redis.guilds.FEEDS}:${feedId}:${constants.redis.guilds.feeds.CHANNELS}`, channelId);
-	},
-	getGuildFeedChannels: async (guildLocation, feedId) => {
-		if (devMode) {
-			try {
-				const response = await redis.s.members(`${guildLocation}:${constants.redis.guilds.FEEDS}:${feedId}:${constants.redis.guilds.feeds.CHANNELS}`);
-				console.info(`[Redis] DONE getGuildFeedChannels ${guildLocation} ${feedId}`);
-				return response;
-			} catch(err) {
-				console.warn(`[Redis] FAIL getGuildFeedChannels ${guildLocation} ${feedId}`);
-			}
-		} else
-		return redis.s.members(`${guildLocation}:${constants.redis.guilds.FEEDS}:${feedId}:${constants.redis.guilds.feeds.CHANNELS}`);
-	},
-	getGuildFeedColor: async (guildLocation, feedId) => {
-		if (devMode) {
-			try {
-				const response = await redis.get(`${guildLocation}:${constants.redis.guilds.FEEDS}:${feedId}:${constants.redis.guilds.feeds.COLOR}`);
-				console.info(`[Redis] DONE getGuildFeedColor ${guildLocation} ${feedId}`);
-				return response;
-			} catch(err) {
-				console.warn(`[Redis] FAIL getGuildFeedColor ${guildLocation} ${feedId}`);
-			}
-		} else
-		return redis.get(`${guildLocation}:${constants.redis.guilds.FEEDS}:${feedId}:${constants.redis.guilds.feeds.COLOR}`);
-	},
-	setGuildFeedColor: async (guildLocation, feedId, color) => {
-		if (devMode) {
-			try {
-				const response = await redis.set(`${guildLocation}:${constants.redis.guilds.FEEDS}:${feedId}:${constants.redis.guilds.feeds.COLOR}`, color);
-				console.info(`[Redis] DONE setGuildFeedColor ${guildLocation} ${feedId} ${color}`);
-				return response;
-			} catch(err) {
-				console.warn(`[Redis] FAIL setGuildFeedColor ${guildLocation} ${feedId} ${color}`);
-			}
-		} else
-		return redis.set(`${guildLocation}:${constants.redis.guilds.FEEDS}:${feedId}:${constants.redis.guilds.feeds.COLOR}`, color);
-	},
 	guildExists: async (guildId) => {
 		if (devMode) {
 			try {
@@ -282,18 +172,6 @@ const database = {
 			}
 		} else
 		return redis.s.isMember(`${constants.REDIS}:${constants.redis.GUILDS}`, guildId);
-	},
-	guildFeedExists: async (guildLocation, feedId) => {
-		if (devMode) {
-			try {
-				const response = await redis.s.isMember(`${guildLocation}:${constants.redis.guilds.FEEDS}`, feedId);
-				console.info(`[Redis] DONE guildFeedExists ${guildLocation} ${feedId}`);
-				return response;
-			} catch(err) {
-				console.warn(`[Redis] FAIL guildFeedExists ${guildLocation} ${feedId}`);
-			}
-		} else
-		return redis.s.isMember(`${guildLocation}:${constants.redis.guilds.FEEDS}`, feedId);
 	},
 	addFeed: async (feedLink) => {
 		if (devMode) {
@@ -355,19 +233,34 @@ const database = {
 				try {
 					await redis.del(`${feedLocation}:${constants.redis.feeds.LINK}`);
 					await redis.del(`${feedLocation}:${constants.redis.feeds.LASTSTATUS}`);
-					console.info(`[Redis] DONE removeFeedAttributes ${feedLink}\n        DONE X-> :${constants.redis.feeds.LINK}\n        DONE X-> :${constants.redis.feeds.LASTSTATUS}`);
+					await redis.del(`${feedLocation}:${constants.redis.feeds.HUB}`);
+					await redis.del(`${feedLocation}:${constants.redis.feeds.THUMBNAIL}`);
+					await redis.del(`${feedLocation}:${constants.redis.feeds.TITLE}`);
+					await redis.del(`${feedLocation}:${constants.redis.feeds.LASTMODIFIED}`);
+					await redis.del(`${feedLocation}:${constants.redis.feeds.ETAG}`);
+					await redis.del(`${feedLocation}:${constants.redis.feeds.TYPE}`);
+					await redis.del(`${feedLocation}:${constants.redis.feeds.LASTITEMTIME}`);
+					console.info(`[Redis] DONE removeFeedAttributes ${feedLink}\n        DONE X-> :${constants.redis.feeds.LINK}\n        DONE X-> :${constants.redis.feeds.LASTSTATUS}\n        DONE X-> :${constants.redis.feeds.HUB}\n        DONE X-> :${constants.redis.feeds.THUMBNAIL}\n        DONE X-> :${constants.redis.feeds.TITLE}\n        DONE X-> :${constants.redis.feeds.LASTMODIFIED}\n        DONE X-> :${constants.redis.feeds.ETAG}\n        DONE X-> :${constants.redis.feeds.TYPE}\n        DONE X-> :${constants.redis.feeds.LASTITEMTIME}`);
 				} catch (err) {
-					console.warn(`[Redis] FAIL removeFeedAttributes ${feedLink}\n        FAIL X-> :${constants.redis.feeds.LINK}\n        FAIL X-> :${constants.redis.feeds.LASTSTATUS}`);
+					console.warn(`[Redis] FAIL removeFeedAttributes ${feedLink}\n        FAIL X-> :${constants.redis.feeds.LINK}\n        FAIL X-> :${constants.redis.feeds.LASTSTATUS}\n        FAIL X-> :${constants.redis.feeds.HUB}\n        FAIL X-> :${constants.redis.feeds.THUMBNAIL}\n        FAIL X-> :${constants.redis.feeds.TITLE}\n        FAIL X-> :${constants.redis.feeds.LASTMODIFIED}\n        FAIL X-> :${constants.redis.feeds.ETAG}\n        FAIL X-> :${constants.redis.feeds.TYPE}\n        FAIL X-> :${constants.redis.feeds.LASTITEMTIME}`);
 					console.log(err);
 				}
 
 				try {
-					for (const guildId of await database.getFeedGuilds(feedLocation)) {
-						await database.removeFeedGuild(feedLocation, guildId);
-					}
-					console.info(`[Redis] DONE removeFeedChannels ${feedLink}\n        DONE X-> :${constants.redis.feeds.GUILDS}`);
+					for (const value of await database.getFeedSupports(feedLocation))
+						await database.removeFeedSupports(feedLocation, value);
+					console.info(`[Redis] DONE removeFeedSupports ${feedLink}\n        DONE X-> :${constants.redis.feeds.SUPPORTS}`);
 				} catch (err) {
-					console.warn(`[Redis] FAIL removeFeedChannels ${feedLink}\n        FAIL X-> :${constants.redis.feeds.GUILDS}`);
+					console.warn(`[Redis] FAIL removeFeedSupports ${feedLink}\n        FAIL X-> :${constants.redis.feeds.SUPPORTS}`);
+					console.log(err);
+				}
+
+				try {
+					for (const guildId of await database.getFeedGuilds(feedLocation))
+						await database.removeFeedGuild(feedLocation, guildId);
+					console.info(`[Redis] DONE removeFeedGuilds ${feedLink}\n        DONE X-> :${constants.redis.feeds.GUILDS}`);
+				} catch (err) {
+					console.warn(`[Redis] FAIL removeFeedGuilds ${feedLink}\n        FAIL X-> :${constants.redis.feeds.GUILDS}`);
 					console.log(err);
 				}
 			} else
@@ -382,10 +275,20 @@ const database = {
 			let feedAttributePromises = [];
 			feedAttributePromises.push(redis.del(`${feedLocation}:${constants.redis.feeds.LINK}`));
 			feedAttributePromises.push(redis.del(`${feedLocation}:${constants.redis.feeds.LASTSTATUS}`));
+			feedAttributePromises.push(redis.del(`${feedLocation}:${constants.redis.feeds.HUB}`));
+			feedAttributePromises.push(redis.del(`${feedLocation}:${constants.redis.feeds.THUMBNAIL}`));
+			feedAttributePromises.push(redis.del(`${feedLocation}:${constants.redis.feeds.TITLE}`));
+			feedAttributePromises.push(redis.del(`${feedLocation}:${constants.redis.feeds.LASTMODIFIED}`));
+			feedAttributePromises.push(redis.del(`${feedLocation}:${constants.redis.feeds.ETAG}`));
+			feedAttributePromises.push(redis.del(`${feedLocation}:${constants.redis.feeds.TYPE}`));
+			feedAttributePromises.push(redis.del(`${feedLocation}:${constants.redis.feeds.LASTITEMTIME}`));
 
-			for (const guildId of await database.getFeedGuilds(feedLocation)) {
+			for (const value of await database.getFeedSupports(feedLocation))
+				feedAttributePromises.push(database.removeFeedSupports(feedLocation, value));
+
+
+			for (const guildId of await database.getFeedGuilds(feedLocation))
 				feedAttributePromises.push(database.removeFeedGuild(feedLocation, guildId));
-			}
 
 			// Wait for all attributes to be removed before returning
 			return Promise.all(feedAttributePromises);
@@ -414,6 +317,18 @@ const database = {
 			}
 		} else
 		return redis.s.isMember(`${feedLocation}:${constants.redis.feeds.GUILDS}`, guildId);
+	},
+	hasFeedGuildChannel: async (feedLocation, guildId, channelId) => {
+		if (devMode) {
+			try {
+				const response = await redis.s.isMember(`${feedLocation}:${constants.redis.feeds.GUILDS}:${guildId}:${constants.redis.feeds.guilds.CHANNELS}`, channelId);
+				console.info(`[Redis] DONE hasFeedGuildChannel ${feedLocation} ${channelId}`);
+				return response;
+			} catch(err) {
+				console.warn(`[Redis] FAIL hasFeedGuildChannel ${feedLocation} ${channelId}`);
+			}
+		} else
+			return redis.s.isMember(`${feedLocation}:${constants.redis.feeds.GUILDS}:${guildId}:${constants.redis.feeds.guilds.CHANNELS}`, channelId);
 	},
 	getFeedGuilds: async (feedLocation) => {
 		if (devMode) {
@@ -694,26 +609,68 @@ const database = {
 	addFeedGuild: async (feedLocation, guildId) => {
 		if (devMode) {
 			try {
+				await database.setFeedGuildColor(feedLocation, guildId, constants.FEEDDEFAULTCOLOR);
+
 				const response = await redis.s.add(`${feedLocation}:${constants.redis.feeds.GUILDS}`, guildId);
 				console.info(`[Redis] DONE addFeedGuild ${feedLocation} ${guildId}`);
 				return response;
 			} catch(err) {
 				console.warn(`[Redis] FAIL addFeedGuild ${feedLocation} ${guildId}`);
 			}
-		} else
+		} else {
+			await database.setFeedGuildColor(feedLocation, guildId, constants.FEEDDEFAULTCOLOR);
+
 			return redis.s.add(`${feedLocation}:${constants.redis.feeds.GUILDS}`, guildId);
+		}
 	},
 	removeFeedGuild: async (feedLocation, guildId) => {
 		if (devMode) {
 			try {
+				const channelIds = await database.getFeedGuildChannels(feedLocation, guildId);
+				for (const channelId of channelIds)
+					await database.removeFeedGuildChannel(feedLocation, guildId, channelId);
+
+				await redis.del(`${feedLocation}:${constants.redis.feeds.GUILDS}:${guildId}:${constants.redis.feeds.guilds.COLOR}`);
+
 				const response = await redis.s.rem(`${feedLocation}:${constants.redis.feeds.GUILDS}`, guildId);
 				console.info(`[Redis] DONE removeFeedGuild ${feedLocation} ${guildId}`);
 				return response;
 			} catch(err) {
 				console.warn(`[Redis] FAIL removeFeedGuild ${feedLocation} ${guildId}`);
 			}
-		} else
+		} else {
+			const channelIds = await database.getFeedGuildChannels(feedLocation, guildId);
+			for (const channelId of channelIds)
+				await database.removeFeedGuildChannel(feedLocation, guildId, channelId);
+
+			await redis.del(`${feedLocation}:${constants.redis.feeds.GUILDS}:${guildId}:${constants.redis.feeds.guilds.COLOR}`);
+
 			return redis.s.rem(`${feedLocation}:${constants.redis.feeds.GUILDS}`, guildId);
+		}
+	},
+	setFeedGuildColor: async (feedLocation, guildId, color) => {
+		if (devMode) {
+			try {
+				const response = await redis.set(`${feedLocation}:${constants.redis.feeds.GUILDS}:${guildId}:${constants.redis.feeds.guilds.COLOR}`, color);
+				console.info(`[Redis] DONE setFeedGuildColor ${feedLocation} ${color}`);
+				return response;
+			} catch(err) {
+				console.warn(`[Redis] FAIL setFeedGuildColor ${feedLocation} ${color}`);
+			}
+		} else
+			return redis.set(`${feedLocation}:${constants.redis.feeds.GUILDS}:${guildId}:${constants.redis.feeds.guilds.COLOR}`, color);
+	},
+	getFeedGuildColor: async (feedLocation, guildId) => {
+		if (devMode) {
+			try {
+				const response = await redis.get(`${feedLocation}:${constants.redis.feeds.GUILDS}:${guildId}:${constants.redis.feeds.guilds.COLOR}`);
+				console.info(`[Redis] DONE getFeedGuildColor ${feedLocation}`);
+				return response;
+			} catch(err) {
+				console.warn(`[Redis] FAIL getFeedGuildColor ${feedLocation}`);
+			}
+		} else
+			return redis.get(`${feedLocation}:${constants.redis.feeds.GUILDS}:${guildId}:${constants.redis.feeds.guilds.COLOR}`);
 	},
 	addFeedGuildChannel: async (feedLocation, guildId, channelId) => {
 		if (devMode) {

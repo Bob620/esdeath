@@ -10,11 +10,14 @@ const {
 	getFeedSupports,
 	getFeedLastItemTime,
 	getFeedGuildChannels,
+	hasFeedGuildChannel,
 	getFeedLastModified,
 	getFeedType,
 	getFeedThumbnail,
 	getFeedETag,
 	getFeedTitle,
+	getFeedGuildColor,
+	setFeedGuildColor,
 	getFeedHub,
 	setFeedHub,
 	setFeedETag,
@@ -35,8 +38,8 @@ module.exports = class {
 		}
 	}
 
-	exists() {
-		return feedExists(this.getId());
+	async exists() {
+		return feedExists(await this.getId());
 	}
 
 	async supports(value) {
@@ -169,6 +172,18 @@ module.exports = class {
 		return addFeedSupports(this.data.redisLocation, value);
 	}
 
+	async setGuildColor(guildId, color) {
+		if (!await this.exists()) return Promise.reject();
+
+		return setFeedGuildColor(this.data.redisLocation, guildId, color);
+	}
+
+	async getGuildColor(guildId) {
+		if (!await this.exists()) return Promise.reject();
+
+		return getFeedGuildColor(this.data.redisLocation, guildId);
+	}
+
 	async removeSupport(value) {
 		if (!await this.exists()) return Promise.reject();
 
@@ -185,5 +200,11 @@ module.exports = class {
 		if (!await this.exists()) return Promise.reject();
 
 		return hasFeedGuild(this.data.redisLocation, guildId);
+	}
+
+	async hasGuildChannel(guildId, channelId) {
+		if (!await this.exists()) return Promise.reject();
+
+		return hasFeedGuildChannel(this.data.redisLocation, guildId, channelId);
 	}
 };

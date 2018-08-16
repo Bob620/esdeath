@@ -112,8 +112,8 @@ function getFeedMeta(feed) {
 				return element['@'] && element['@'].rel && element['@'].rel === 'hub';
 			}) : false;
 
-			if (pubsubhubbub) {
-				await feed.setHub(pubsubhubbub.href);
+			if (pubsubhubbub && pubsubhubbub['@'].href) {
+				await feed.setHub(pubsubhubbub['@'].href);
 				await feed.addSupport('pubsubhubbub');
 			} else
 				await feed.removeSupport('pubsubhubbub');
@@ -192,8 +192,8 @@ function getFeedArticles(feed) {
 				return element['@'] && element['@'].rel && element['@'].rel === 'hub';
 			}) : false;
 
-			if (pubsubhubbub) {
-				await feed.setHub(pubsubhubbub.href);
+			if (pubsubhubbub && pubsubhubbub['@'].href) {
+				await feed.setHub(pubsubhubbub['@'].href);
 				await feed.addSupport('pubsubhubbub');
 			} else
 				await feed.removeSupport('pubsubhubbub');
