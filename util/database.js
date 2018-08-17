@@ -9,31 +9,39 @@ const distributor = require('../components/distributor');
 
 const database = {
 	addGuild: async (guildId) => {
-		if (!await database.guildExists(guildId)) {
-			const guildLocation = database.getGuildLocation(guildId);
+		try {
+			if (!await database.guildExists(guildId)) {
+				const guildLocation = database.getGuildLocation(guildId);
 
-			database.setGuildFeedLimit(guildLocation);
-			database.setGuildPrefix(guildLocation);
-			database.setGuildChannelLimit(guildLocation);
+				database.setGuildFeedLimit(guildLocation);
+				database.setGuildPrefix(guildLocation);
+				database.setGuildChannelLimit(guildLocation);
 
-			await redis.s.add(`${constants.REDIS}:${constants.redis.GUILDS}`, guildId);
+				await redis.s.add(`${constants.REDIS}:${constants.redis.GUILDS}`, guildId);
+			}
+		} catch(err) {
+			console.error(err);
 		}
 	},
 	removeGuild: async (guildId) => {
-		if (await database.guildExists(guildId)) {
-			const guildLocation = database.getGuildLocation(guildId);
-			let guildRemovalPromises = [];
+		try {
+			if (await database.guildExists(guildId)) {
+				const guildLocation = database.getGuildLocation(guildId);
+				let guildRemovalPromises = [];
 
-			await redis.s.rem(`${constants.REDIS}:${constants.redis.GUILDS}`, guildId);
+				await redis.s.rem(`${constants.REDIS}:${constants.redis.GUILDS}`, guildId);
 
-			guildRemovalPromises.push(redis.del(`${guildLocation}:${constants.redis.guilds.SETTINGS}:${constants.redis.guilds.settings.FEEDLIMIT}`));
-			guildRemovalPromises.push(redis.del(`${guildLocation}:${constants.redis.guilds.SETTINGS}:${constants.redis.guilds.settings.PREFIX}`));
-			guildRemovalPromises.push(redis.del(`${guildLocation}:${constants.redis.guilds.SETTINGS}:${constants.redis.guilds.settings.CHANNELLIMIT}`));
+				guildRemovalPromises.push(redis.del(`${guildLocation}:${constants.redis.guilds.SETTINGS}:${constants.redis.guilds.settings.FEEDLIMIT}`));
+				guildRemovalPromises.push(redis.del(`${guildLocation}:${constants.redis.guilds.SETTINGS}:${constants.redis.guilds.settings.PREFIX}`));
+				guildRemovalPromises.push(redis.del(`${guildLocation}:${constants.redis.guilds.SETTINGS}:${constants.redis.guilds.settings.CHANNELLIMIT}`));
 
-			for (const role of await database.getGuildOpRoles(guildLocation))
-				guildRemovalPromises.push(database.removeGuildOpRole(guildLocation, role));
+				for (const role of await database.getGuildOpRoles(guildLocation))
+					guildRemovalPromises.push(database.removeGuildOpRole(guildLocation, role));
 
-			return Promise.all(guildRemovalPromises);
+				return Promise.all(guildRemovalPromises);
+			}
+		} catch(err) {
+			console.error(err);
 		}
 	},
 	getGuildLocation: (guildId) => {

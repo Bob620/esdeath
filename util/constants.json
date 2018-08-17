@@ -58,5 +58,10 @@
       "HEAD": "head",
       "PUBSUBHUBBUB": "PuSH"
     }
+  },
+  "discord": {
+    "permissions": {
+      "ADMINISTRATOR": 8
+    }
   }
 }
