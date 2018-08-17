@@ -195,24 +195,30 @@ module.exports = new Map([
 		async (command, message, guildInterface, feedService) => {
 			try {
 				if (command[1] && command[2]) {
-					let channels = [];
-					let feed = await feedService.getFeed(command[1]);
-					if (!feed)
-						feed = await feedService.createFeed(command[1]);
+					if (/^https?:\/\//gmi.test(command[1]) && command[1].length <= constants.MAXURILENGTH) {
+						let channels = [];
+						let feed = await feedService.getFeed(command[1]);
+						if (!feed)
+							feed = await feedService.createFeed(command[1]);
 
-					const feedChannels = await feed.getGuildChannels(message.guild.id);
+						const feedChannels = await feed.getGuildChannels(message.guild.id);
 
-					for (const [channelId, channel] of message.mentions.channels) {
-						if (!feedChannels.includes(channelId)) {
-							channels.push(channel);
-							await feedService.subscribe(command[1], message.guild.id, [channelId]);
+						for (const [channelId, channel] of message.mentions.channels) {
+							if (!feedChannels.includes(channelId)) {
+								channels.push(channel);
+								await feedService.subscribe(command[1], message.guild.id, [channelId]);
+							}
 						}
-					}
 
-					message.channel.send(`${channels.join(', ')} added to feed update`).then(() => {
-					}).catch(err => {
-						console.log(err);
-					});
+						message.channel.send(`${channels.join(', ')} added to feed update`).then(() => {
+						}).catch(err => {
+							console.log(err);
+						});
+					} else
+						message.channel.send(`Feed URL was not recognised as a URL or is over ${constants.MAXURILENGTH} characters long, please check again`).then(() => {
+						}).catch(err => {
+							console.log(err);
+						});
 				} else
 					message.channel.send(`${command[0]} feedLink #channel [...#channel]`).then(() => {
 					}).catch(err => {
@@ -277,29 +283,39 @@ module.exports = new Map([
 			try {
 				const guildId = message.guild.id;
 				if (command[1]) {
-					for (const feedId of command.slice(1)) {
-						const feed = await feedService.getFeed(feedId);
-						const feedChannels = await feed.getGuildChannels(guildId);
+					const feedIds = await feedService.getGuildSubscriptions(guildId);
+					if (feedIds.includes(command[1])) {
+						for (const feedId of command.slice(1)) {
+							try {
+								const feed = await feedService.getFeed(feedId);
+								const feedChannels = await feed.getGuildChannels(guildId);
 
-						const color = await feed.getGuildColor(guildId);
+								const color = await feed.getGuildColor(guildId);
 
-						message.channel.send({
-							embed: {
-								title: await feed.getTitle(),
-								thumbnail: {
-									url: await feed.getThumbnail()
-								},
-								color,
-								description: `Link: ${await feed.getLink()}\nStatus: ${await feed.getLastStatus()}\nColor: #${convertDigitHex(color)}\nChannels: ${message.guild.channels.array().filter(channel => {
-									return feedChannels.includes(channel.id);
-								}).join(', ')}`
+								message.channel.send({
+									embed: {
+										title: await feed.getTitle(),
+										thumbnail: {
+											url: await feed.getThumbnail()
+										},
+										color,
+										description: `Link: ${await feed.getLink()}\nStatus: ${await feed.getLastStatus()}\nColor: #${convertDigitHex(color)}\nChannels: ${message.guild.channels.array().filter(channel => {
+											return feedChannels.includes(channel.id);
+										}).join(', ')}`
+									}
+								}).then(() => {
+								})
+								.catch(err => {
+									console.log(err)
+								});
+							} catch (err) {
+								console.log(err);
 							}
-						}).then(() => {
-						})
-						.catch(err => {
-							console.log(err)
+						}
+					} else
+						message.channel.send('That feed was not found').then(() => {}).catch(err => {
+							log.error('removeFeed', err);
 						});
-					}
 				} else {
 					const opRoles = await guildInterface.getOpRoles();
 					const feedIds = await feedService.getGuildSubscriptions(guildId);
@@ -357,34 +373,43 @@ module.exports = new Map([
 		async (command, message, guildInterface, feedService) => {
 			const guildId = message.guild.id;
 			if (command[1]) {
-				for (const feedId of command.slice(1)) {
-					const feed = await feedService.getFeed(feedId);
-					const feedChannels = await feed.getGuildChannels(guildId);
+				const feedIds = await feedService.getGuildSubscriptions(guildId);
+				if (feedIds.includes(command[1])) {
+					for (const feedId of command.slice(1)) {
+						try {
+							const feed = await feedService.getFeed(feedId);
+							const feedChannels = await feed.getGuildChannels(guildId);
 
-					const color = await feed.getGuildColor(guildId);
+							const color = await feed.getGuildColor(guildId);
 
-					message.channel.send({
-						embed: {
-							title: await feed.getTitle(),
-							thumbnail: {
-								url: await feed.getThumbnail()
-							},
-							color,
-							description: `Link: ${await feed.getLink()}\nStatus: ${await feed.getLastStatus()}\nColor: #${convertDigitHex(color)}\nChannels: ${message.guild.channels.array().filter(channel => {
-								return feedChannels.includes(channel.id);
-							}).join(', ')}`
+							message.channel.send({
+								embed: {
+									title: await feed.getTitle(),
+									thumbnail: {
+										url: await feed.getThumbnail()
+									},
+									color,
+									description: `Link: ${await feed.getLink()}\nStatus: ${await feed.getLastStatus()}\nColor: #${convertDigitHex(color)}\nChannels: ${message.guild.channels.array().filter(channel => {
+										return feedChannels.includes(channel.id);
+									}).join(', ')}`
+								}
+							}).then(() => {
+							})
+							.catch(err => {
+								console.log(err)
+							});
+						} catch (err) {
+							console.log(err);
 						}
-					}).then(() => {
-					})
-					.catch(err => {
-						console.log(err)
+					}
+				} else
+					message.channel.send('That feed was not found').then(() => {}).catch(err => {
+						log.error('removeFeed', err);
 					});
-				}
-			} else {
+			} else
 				message.channel.send(`${command[0]} feedLink`).then(() => {}).catch(err => {
 					log.error('removeFeed', err);
 				});
-			}
 		}
 	],
 	[
