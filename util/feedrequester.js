@@ -2,6 +2,8 @@ const request = require('request');
 const requestPromise = require('request-promise-native');
 const FeedParser = require('feedparser');
 
+const config = require('../config/config');
+
 const rssTransformation = require('./rsstransformations');
 
 /**
@@ -110,7 +112,13 @@ function getFeedMeta(feed) {
 
 		parser.on('meta', async meta => {
 			let pubsubhubbub;
-			if (meta['atom:link'] || meta['atom10:link']) {
+			if (meta.cloud && meta.cloud.type === 'hub') {
+				pubsubhubbub = {
+					'@': {
+						href: meta.cloud.href
+					}
+				}
+			} else if (meta['atom:link'] || meta['atom10:link']) {
 				pubsubhubbub = meta['atom:link'] ? meta['atom:link'].find(element => {
 					return element['@'] && element['@'].rel && element['@'].rel === 'hub';
 				}) : meta['atom10:link'].find(element => {
@@ -182,9 +190,10 @@ function getFeedMeta(feed) {
  */
 function getFeedArticles(feed) {
 	return new Promise(async (resolve, reject) => {
+		const uri = await feed.getLink();
 		const req = request({
 			method: 'GET',
-			uri: await feed.getLink(),
+			uri,
 			gzip: true
 		});
 		const parser = new FeedParser({
@@ -197,9 +206,20 @@ function getFeedArticles(feed) {
 		};
 
 		parser.on('meta', async meta => {
-			const pubsubhubbub = meta['atom:link'] ? meta['atom:link'].find(element => {
-				return element['@'] && element['@'].rel && element['@'].rel === 'hub';
-			}) : false;
+			let pubsubhubbub;
+			if (meta.cloud && meta.cloud.type === 'hub') {
+				pubsubhubbub = {
+					'@': {
+						href: meta.cloud.href
+					}
+				}
+			} else if (meta['atom:link'] || meta['atom10:link']) {
+				pubsubhubbub = meta['atom:link'] ? meta['atom:link'].find(element => {
+					return element['@'] && element['@'].rel && element['@'].rel === 'hub';
+				}) : meta['atom10:link'].find(element => {
+					return element['@'] && element['@'].rel && element['@'].rel === 'hub';
+				});
+			}
 
 			if (pubsubhubbub && pubsubhubbub['@'].href) {
 				await feed.setHub(pubsubhubbub['@'].href);
@@ -222,7 +242,7 @@ function getFeedArticles(feed) {
 			resolve(returnFeed);
 		});
 
-		parser.on('readable', () => {
+		parser.on('readable', async () => {
 			let item = parser.read();
 			while (item) {
 				if (item.summary) {
@@ -233,6 +253,10 @@ function getFeedArticles(feed) {
 						item.description = rssTransformation.maxLength(rssTransformation.removeHtml(item.description));
 						item.summary = item.description;
 					}
+
+				if (config.rssSpecialCare[uri])
+					for (const care of config.rssSpecialCare[uri])
+						item = await rssTransformation[care](item);
 
 				returnFeed.items.push(item);
 				item = parser.read();
