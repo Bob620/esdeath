@@ -17,9 +17,9 @@ function checkUpdatedHead(feed) {
 			method: 'HEAD',
 			uri: await feed.getLink(),
 			gzip: true,
-			transform: (body, response) => {return [body, response.statusCode]},
+			transform: (body, response) => {return [response.headers, response.statusCode]},
 			headers: {
-				'If-None-Match': supports.includes('etag') ? await feed.getLastETag() : '',
+				'If-None-Match': supports.includes('etag') ? await feed.getETag() : '',
 				'If-Modified-Since': supports.includes('last-modified') ? await feed.getLastModified() : ''
 			}
 		}).then(async ([head, statusCode]) => {
@@ -40,7 +40,7 @@ function checkUpdatedHead(feed) {
 			resolve(true);
 		}).catch(async err => {
 			await feed.setLastStatus(err.statusCode);
-			if (err.statusCode === '304')
+			if (err.statusCode === 304)
 				resolve(false);
 			else {
 				// BETTER LOGGING
@@ -64,7 +64,7 @@ function getHead(feed) {
 			method: 'HEAD',
 			uri: await feed.getLink(),
 			gzip: true,
-			transform: (body, response) => {return [body, response.statusCode]}
+			transform: (body, response) => {return [response.headers, response.statusCode]}
 		}).then(async ([head, statusCode]) => {
 			await feed.setLastStatus(statusCode);
 
@@ -99,7 +99,8 @@ function getFeedMeta(feed) {
 	return new Promise(async (resolve, reject) => {
 		const req = request({
 			method: 'GET',
-			uri: await feed.getLink()
+			uri: await feed.getLink(),
+			gzip: true
 		});
 		const parser = new FeedParser({
 			addmeta: false
@@ -108,9 +109,14 @@ function getFeedMeta(feed) {
 		parser.on('end', () => {});
 
 		parser.on('meta', async meta => {
-			const pubsubhubbub = meta['atom:link'] ? meta['atom:link'].find(element => {
-				return element['@'] && element['@'].rel && element['@'].rel === 'hub';
-			}) : false;
+			let pubsubhubbub;
+			if (meta['atom:link'] || meta['atom10:link']) {
+				pubsubhubbub = meta['atom:link'] ? meta['atom:link'].find(element => {
+					return element['@'] && element['@'].rel && element['@'].rel === 'hub';
+				}) : meta['atom10:link'].find(element => {
+					return element['@'] && element['@'].rel && element['@'].rel === 'hub';
+				});
+			}
 
 			if (pubsubhubbub && pubsubhubbub['@'].href) {
 				await feed.setHub(pubsubhubbub['@'].href);
@@ -152,6 +158,8 @@ function getFeedMeta(feed) {
 
 			const head = res.headers;
 
+			console.log(head);
+
 			if (head.etag) {
 				await feed.setETag(head.etag);
 				await feed.addSupport('etag');
@@ -176,7 +184,8 @@ function getFeedArticles(feed) {
 	return new Promise(async (resolve, reject) => {
 		const req = request({
 			method: 'GET',
-			uri: await feed.getLink()
+			uri: await feed.getLink(),
+			gzip: true
 		});
 		const parser = new FeedParser({
 			addmeta: false

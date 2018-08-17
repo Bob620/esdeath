@@ -43,9 +43,9 @@ class DiscordService {
 			log.info('', 'Resumed websocket connection');
 		});
 
-		discordClient.on('channelDelete', this.deleteChannel);
-		discordClient.on('guildCreate', this.createGuild);
-		discordClient.on('guildDelete', this.deleteGuild);
+		discordClient.on('channelDelete', this.deleteChannel.bind(this));
+		discordClient.on('guildCreate', this.createGuild.bind(this));
+		discordClient.on('guildDelete', this.deleteGuild.bind(this));
 
 		discordClient.on('message', async message => {
 			try {
@@ -56,18 +56,18 @@ class DiscordService {
 					if (message.cleanContent.startsWith(await guildInterface.getPrefix())) {
 						const opRoles = await guildInterface.getOpRoles();
 						// Has permissions
-						if ((message.member.hasPermission([], false, true, true) || message.member.roles.keyArray().some(roleId => {
+						if ((message.member.hasPermission(constants.discord.permissions.ADMINISTRATOR) || message.member.roles.keyArray().some(roleId => {
 							return opRoles.includes(roleId);
 						})))
 							await this.commandRunner(message, guildInterface);
 					}
 				}
 			} catch(err) {
-				log.error('', err);
+				console.error('', err);
 			}
 		});
 
-		feedService.on(constants.distributor.events.NEWFEEDARTICLES, this.sendArticle);
+		feedService.on(constants.distributor.events.NEWFEEDARTICLES, this.sendArticle.bind(this));
 	}
 
 	commandRunner(message, guildInterface) {
@@ -79,7 +79,7 @@ class DiscordService {
 			return command(commandMessage, message, guildInterface, this.data.feedService);
 	}
 
-	async sendArticle(feed, item) {
+	async sendArticle(feed, item, meta) {
 		try {
 			const guildIds = await feed.getGuilds();
 			for (const guildId of guildIds) {
@@ -88,22 +88,28 @@ class DiscordService {
 					try {
 						const channel = await this.data.discordClient.channels.get(channelId);
 						const color = await feed.getGuildColor(guildId);
-						channel.send({
+						let embedItem = {
 							embed: {
 								title: item.title,
 								description: item.summary,
 								url: item.link,
 								timestamp: item.pubdate,
 								color,
-								thumbnail: {
-									url: item.image.url
-								},
 								author: {
-									name: item.author ? item.author : item.meta.title,
-									url: item.meta.link
+									name: await feed.getTitle(),
+									url: meta.link
 								}
 							}
-						}).then(() => {
+						};
+
+						const feedThumbnail = await feed.getThumbnail();
+						if ((item.image && item.image.url) || (feedThumbnail)) {
+							embedItem.thumbnail = {
+								url: item.image ? item.image.url : feedThumbnail
+							}
+						}
+
+						channel.send(embedItem).then(() => {
 						}).catch(err => {
 							log.fail('sendArticle', `Failed to send the embedded article`);
 							log.error('sendArticle', err);
@@ -128,7 +134,7 @@ class DiscordService {
 	async getGuild(guildId) {
 		let guild = this.data.guilds.get(guildId);
 		if (!guild)
-			guild = this.createGuild(undefined, guildId);
+			return await this.createGuild(undefined, guildId);
 		return guild;
 	}
 
@@ -156,7 +162,7 @@ class DiscordService {
 			guildId = guild.id;
 		try {
 			if (!await guildExists(guildId))
-				return await addGuild(guildId);
+				await addGuild(guildId);
 
 			const guildInterface = new GuildInterface(guildId);
 			this.data.guilds.set(guildId, guildInterface);
