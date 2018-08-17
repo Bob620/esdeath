@@ -19,7 +19,7 @@ class timer {
 	runHooks() {
 		for (const [,hook] of this.data.hooks)
 			if (!((this.data.tick - hook.initTick) % hook.interval))
-				hook.callback(this.data.realInterval);
+				hook.callback();
 
 		this.data.tick++;
 		this.data.realInterval = this.getNextInterval();
