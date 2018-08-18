@@ -68,11 +68,11 @@ class Logging {
 	useDomain(domain) {
 		return {
 			log: this.log.bind(this, [domain]),
-			info: this.addDomain.bind(this, [domain]),
-			warn: this.addDomain.bind(this, [domain]),
-			error: this.addDomain.bind(this, [domain]),
-			success: this.addDomain.bind(this, [domain]),
-			fail: this.addDomain.bind(this, [domain])
+			info: this.info.bind(this, [domain]),
+			warn: this.warn.bind(this, [domain]),
+			error: this.error.bind(this, [domain]),
+			success: this.success.bind(this, [domain]),
+			fail: this.fail.bind(this, [domain])
 		}
 	}
 
