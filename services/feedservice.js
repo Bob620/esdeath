@@ -3,6 +3,7 @@
 const EventEmitter = require('events');
 
 const constants = require('../util/constants');
+const config = require('../config/config');
 
 const feedRequester = require('../util/feedrequester');
 const FeedInterface = require('../interfaces/feed');
@@ -41,13 +42,13 @@ class FeedService extends EventEmitter {
 	async checkForHeadUpdates(altFeed) {
 		if (altFeed) {
 			const supports = await altFeed.getAllSupports();
-			if (!supports.includes(constants.feed.types.PUBSUBHUBBUB) && (supports.includes(constants.feed.types.HEAD) || supports.includes('etag') || supports.includes('last-modified')))
+			if ((config.enablePuSH ? !supports.includes(constants.feed.types.PUBSUBHUBBUB) : true) && (supports.includes(constants.feed.types.HEAD) || supports.includes('etag') || supports.includes('last-modified')))
 				if (await feedRequester.checkUpdatedHead(altFeed))
 					await this.updateFeedArticles(altFeed);
 		} else {
 			for (const [, feed] of this.data.feeds) {
 				const supports = await feed.getAllSupports();
-				if (!supports.includes(constants.feed.types.PUBSUBHUBBUB) && (supports.includes(constants.feed.types.HEAD) || supports.includes('etag') || supports.includes('last-modified')))
+				if ((config.enablePuSH ? !supports.includes(constants.feed.types.PUBSUBHUBBUB) : true) && (supports.includes(constants.feed.types.HEAD) || supports.includes('etag') || supports.includes('last-modified')))
 					if (await feedRequester.checkUpdatedHead(feed))
 						await this.updateFeedArticles(feed);
 			}
@@ -64,9 +65,10 @@ class FeedService extends EventEmitter {
 			if (await altFeed.supports(constants.feed.types.PUBSUBHUBBUB))
 				await feedRequester.getFeedMeta(altFeed);
 		else
-			for (const [, feed] of this.data.feeds)
-				if (await feed.supports(constants.feed.types.PUBSUBHUBBUB))
-					await feedRequester.getFeedMeta(feed);
+			if (config.enablePuSH)
+				for (const [, feed] of this.data.feeds)
+					if (await feed.supports(constants.feed.types.PUBSUBHUBBUB))
+						await feedRequester.getFeedMeta(feed);
 	}
 
 	/**

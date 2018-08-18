@@ -1,5 +1,6 @@
 {
   "devMode": true,
+  "enablePuSH": true,
   "redis": {},
   "feedInterval": 30,
   "rssTimeout": 10,
