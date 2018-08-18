@@ -302,7 +302,7 @@ class FeedService extends EventEmitter {
 			for (const feedId of feedIds) {
 				const feed = await this.getFeed(feedId);
 
-				if (feed.hasGuildChannel(guildId, channelId))
+				if (await feed.hasGuildChannel(guildId, channelId))
 					subs.push(feedId);
 			}
 
@@ -318,10 +318,11 @@ class FeedService extends EventEmitter {
 			const feedIds = await this.getFeedIds();
 			let subs = [];
 
+
 			for (const feedId of feedIds) {
 				const feed = await this.getFeed(feedId);
 
-				if (feed.hasGuild(guildId))
+				if (await feed.hasGuild(guildId))
 					subs.push(feedId);
 			}
 
