@@ -354,7 +354,7 @@ module.exports = new Map([
 								},
 								{
 									name: 'Feed Overview (called **\`feedLinks\`** in commands)',
-									value: feedOverview
+									value: feedOverview === '' ? 'No feeds in use' : feedOverview
 								}
 							]
 						}
