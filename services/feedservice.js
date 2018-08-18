@@ -79,12 +79,12 @@ class FeedService extends EventEmitter {
 	async checkArticles(altFeed) {
 		if (altFeed) {
 			const supports = await altFeed.getAllSupports();
-			if (supports.length === 0)
+			if ((config.enablePuSH ? supports.length === 1 && supports.includes(constants.feed.types.PUBSUBHUBBUB) : supports.length === 0))
 				await this.updateFeedArticles(altFeed);
 		} else
 			for (const [, feed] of this.data.feeds) {
 				const supports = await feed.getAllSupports();
-				if (supports.length === 0)
+				if ((config.enablePuSH ? supports.length === 1 && supports.includes(constants.feed.types.PUBSUBHUBBUB) : supports.length === 0))
 					await this.updateFeedArticles(feed);
 			}
 	}
