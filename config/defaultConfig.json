@@ -7,6 +7,45 @@
   "rssSpecialCare": {
     "http://feeds.feedburner.com/crunchyroll/animenews.xml": [
       "fixCR"
+    ],
+    "http://feeds.feedburner.com/crunchyroll/animenews": [
+      "fixCR"
+    ],
+    "http://www.crunchyroll.com/newsrss": [
+      "fixCR"
+    ],
+    "http://www.crunchyroll.com/newsrss?lang=enUS": [
+      "fixCR"
+    ],
+    "http://www.crunchyroll.com/newsrss?lang=enGB": [
+      "fixCR"
+    ],
+    "http://www.crunchyroll.com/newsrss?lang=esLA": [
+      "fixCR"
+    ],
+    "http://www.crunchyroll.com/newsrss?lang=esES": [
+      "fixCR"
+    ],
+    "http://www.crunchyroll.com/newsrss?lang=ptBR": [
+      "fixCR"
+    ],
+    "http://www.crunchyroll.com/newsrss?lang=ptPT": [
+      "fixCR"
+    ],
+    "http://www.crunchyroll.com/newsrss?lang=frFR": [
+      "fixCR"
+    ],
+    "http://www.crunchyroll.com/newsrss?lang=deDE": [
+      "fixCR"
+    ],
+    "http://www.crunchyroll.com/newsrss?lang=arME": [
+      "fixCR"
+    ],
+    "http://www.crunchyroll.com/newsrss?lang=itIT": [
+      "fixCR"
+    ],
+    "http://www.crunchyroll.com/newsrss?lang=ruRU": [
+      "fixCR"
     ]
   },
   "discord": {
