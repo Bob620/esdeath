@@ -71,7 +71,12 @@ class DiscordService {
 	}
 
 	commandRunner(message, guildInterface) {
-		const commandMessage = message.cleanContent.split(' ');
+		const rawCommandMessage = message.cleanContent.split(' ');
+		let commandMessage = [];
+
+		for (const word of rawCommandMessage)
+			if (word.length > 0)
+				commandMessage.push(word);
 
 		const command = this.data.commands.get(commandMessage[0].substr(1));
 
